@@ -158,6 +158,8 @@ with tabs[0]:
         unsafe_allow_html=True
     )
 
+    st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
+
     st.title("📝 المحاسبة الذاتية")
     refresh_button("refresh_tab1")
 
@@ -290,7 +292,7 @@ with tabs[1]:
     unsafe_allow_html=True
 )
 
-    st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
+    
     refresh_button("refresh_chat")
     show_chat()
 
