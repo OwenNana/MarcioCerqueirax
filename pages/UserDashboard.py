@@ -1,19 +1,49 @@
+import streamlit as st
 import gspread
 import pandas as pd
 import json
 from google.oauth2.service_account import Credentials
+from datetime import datetime, timedelta
+
+# ===== إعادة التوجيه إلى صفحة تسجيل الدخول إذا لم يتم تسجيل الدخول =====
+if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
+    st.switch_page("home.py")
+
+# ===== الاتصال بـ Google Sheets =====
+SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
+creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
+client = gspread.authorize(creds)
+
+# ===== إعداد الصفحة =====
+st.set_page_config(page_title="تقييم اليوم", page_icon="📋", layout="wide")
+
+# ===== تحقق من صلاحية المستخدم =====
+if "username" not in st.session_state or "sheet_url" not in st.session_state:
+    st.error("❌ يجب تسجيل الدخول أولاً.")
+    st.stop()
+
+if st.session_state["permissions"] != "user":
+    if st.session_state["permissions"] == "admin":
+        st.warning("👤 تم تسجيل الدخول كأدمن، سيتم تحويلك للوحة التحكم...")
+        st.switch_page("pages/AdminDashboard.py")
+    elif st.session_state["permissions"] == "supervisor":
+        st.warning("👤 تم تسجيل الدخول كمشرف، سيتم تحويلك للتقارير...")
+        st.switch_page("pages/Supervisor.py")
+    else:
+        st.error("⚠️ الصلاحية غير معروفة.")
+    st.stop()
+
+username = st.session_state["username"]
+sheet_name = f"بيانات - {username}"
+spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
+worksheet = spreadsheet.worksheet(sheet_name)
+columns = worksheet.row_values(1)
 
 # ===== دالة جلب البيانات من جوجل شيت =====
 def load_data():
-    SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
-    creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
-    client = gspread.authorize(creds)
-    
-    SHEET_ID = "1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY"  # معرف الشيت
-    sheet = client.open_by_key(SHEET_ID).worksheet("admin")  # ورقة العمل
-    data = sheet.get_all_records()  # جلب البيانات
-    df = pd.DataFrame(data)  # تحويل البيانات إلى DataFrame
+    data = worksheet.get_all_records()
+    df = pd.DataFrame(data)
     return df
 
 # ===== تبويبات المستخدم =====
