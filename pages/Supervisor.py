@@ -301,18 +301,22 @@ with tabs[3]:
 # ===== تبويب 5: تقرير فردي =====
 with tabs[4]:
     st.subheader("تقرير تفصيلي لمستخدم")
+    
+    # زر جلب المعلومات من قاعدة البيانات
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_5"):
         st.cache_data.clear()
         st.rerun()
 
-    # إضافة عمود "full_name" إلى merged_df
+    # إضافة عمود "full_name" إلى merged_df بناءً على "username"
     merged_df["full_name"] = merged_df["username"].map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
 
-    # استخدام "full_name" في selectbox
+    # استخدام "full_name" في selectbox بدلاً من "username"
     selected_user = st.selectbox("اختر المستخدم", merged_df["full_name"].unique())
 
-    # الآن يمكننا استخدام "full_name" لعرض البيانات
+    # عرض بيانات المستخدم بناءً على "full_name"
     user_df = merged_df[merged_df["full_name"] == selected_user].sort_values("التاريخ")
+
+    # إزالة الفهرس وإظهار البيانات
     st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
 
 # ===== تبويب 6: رسوم بيانية =====
