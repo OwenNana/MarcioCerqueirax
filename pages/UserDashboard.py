@@ -214,7 +214,7 @@ with tabs[1]:
         submit = st.form_submit_button("💾 حفظ")
 
         if submit:
-            if date not in allowed_dates:
+            if selected_date not in [d for _, d in hijri_dates]:
                 st.error("❌ التاريخ غير صالح. لا يمكن حفظ البيانات لأكثر من أسبوع سابق فقط")
             else:
                 all_dates = worksheet.col_values(1)
