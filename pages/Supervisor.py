@@ -220,7 +220,9 @@ with tabs[0]:
     grouped["المجموع"] = grouped.sum(axis=1)
     grouped = grouped.sort_values(by="المجموع", ascending=True)
     for user, row in grouped.iterrows():
-        st.markdown(f"### <span style='color: #006400;'>{user} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
+    full_name = users_df.loc[users_df["username"] == user, "full_name"].values[0]  # جلب الاسم الكامل
+    st.markdown(f"### <span style='color: #006400;'>{full_name} : {row['المجموع']} درجة</span>", 
+unsafe_allow_html=True)
 
 # ===== تبويب 2: المحادثات =====
 with tabs[1]:
@@ -238,7 +240,12 @@ with tabs[2]:
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_3"):
         st.cache_data.clear()
         st.rerun()
-    st.dataframe(grouped, use_container_width=True)
+
+    # نضيف "الاسم الكامل" إلى grouped
+    grouped["full_name"] = grouped.index.map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
+
+# الآن نعرض البيانات مع "الاسم الكامل" في `grouped`
+    st.dataframe(grouped[['full_name', 'المجموع']], use_container_width=True)
 
 # ===== تبويب 4: تجميعي بند =====
 with tabs[3]:
