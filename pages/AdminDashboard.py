@@ -39,13 +39,6 @@ if st.button("🔄 جلب المعلومات من قاعدة البيانات"):
     st.cache_data.clear()
     st.rerun()
 
-# ===== عرض المستخدمين =====
-st.subheader("📋 قائمة المستخدمين")
-
-# عرض جميع المستخدمين مع الأعمدة المطلوبة فقط
-filtered_df = users_df[["username", "role", "Mentor"]]  # اختيار الأعمدة المطلوبة
-st.dataframe(filtered_df, use_container_width=True)
-
 # ===== الأعمدة الافتراضية لكل مستخدم جديد =====
 def get_default_columns():
     return [
@@ -79,11 +72,11 @@ with st.form("create_user_form"):
     username = st.text_input("Username")
     password = st.text_input("Password")
     role = "user"  # تم تثبيت الصلاحية على user فقط
-    
+
     # اختيار المشرف من قائمة المشرفين فقط
     mentor_options = supervisors_df["username"].tolist()  # أسماء المشرفين فقط
     mentor = st.selectbox("اختار المشرف", mentor_options)  # اختيار المشرف
-    
+
     create = st.form_submit_button("Create")
 
     if create:
@@ -96,9 +89,15 @@ with st.form("create_user_form"):
                 worksheet_name = f"بيانات - {username}"
                 worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows="1000", cols="30")
                 worksheet.insert_row(get_default_columns(), 1)
-                # إضافة المشرف للمستخدم عند إنشاءه
                 admin_sheet.append_row([username, password, worksheet_name, role, mentor])  # إضافة المشرف
                 st.success("✅ تم إنشاء المستخدم والورقة بنجاح")
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ حدث خطأ أثناء إنشاء المستخدم: {e}")
+
+# ===== عرض المستخدمين =====
+st.subheader("📋 قائمة المستخدمين")
+
+# عرض جميع المستخدمين مع الأعمدة المطلوبة فقط
+filtered_df = users_df[["username", "role", "Mentor"]]  # اختيار الأعمدة المطلوبة
+st.dataframe(filtered_df, use_container_width=True)
