@@ -114,19 +114,8 @@ tabs = st.tabs([" تقرير إجمالي", "💬 المحادثات", "📋 ت�
 
 # ===== دالة عرض المحادثة =====
 
-
-
-
-
-
-
 def show_chat_supervisor():
     st.subheader("💬 الدردشة")
-
-    # زر تفريغ الدردشة
-    if st.button("🗑️ تفريغ الدردشة", key="clear_chat"):
-        st.session_state["chat_message"] = ""  # مسح حقل الرسالة
-        st.rerun()  # إعادة تحميل الصفحة
 
     if "selected_user_display" not in st.session_state:
         st.session_state["selected_user_display"] = "اختر الشخص"
@@ -178,28 +167,21 @@ def show_chat_supervisor():
 
         # حقل النص لإدخال الرسالة
         new_msg = st.text_area("✏️ اكتب رسالتك", height=100, key="chat_message")
-
-        # عمود الزر "مسح الرسالة" و "إرسال الرسالة"
-        col_clear, col_send = st.columns([1, 3])
-
-        # زر مسح الرسالة
-        if col_clear.button("🧹 مسح الرسالة"):
-            st.session_state["chat_message"] = ""  # تعيين الحقل ليصبح فارغاً
-            st.experimental_rerun()  # لإعادة رسم الصفحة وإظهار أن الحقل فارغ
-
-        # زر إرسال الرسالة
-        if col_send.button("📨 إرسال الرسالة"):
-            if new_msg.strip():  # تأكد من عدم فراغ الرسالة
+        if st.button("📨 إرسال الرسالة"):
+            if new_msg.strip():  # تأكد من أن الرسالة ليست فارغة
                 timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
                 chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
+        
+                # رسالة تم إرسالها
                 st.success("✅ تم إرسال الرسالة")
-                st.session_state.chat_message = ""  # مسح الحقل بدلاً من del
-                st.experimental_rerun()  # تحديث الصفحة لإزالة محتوى الحقل
+
+                # إعادة تحميل الصفحة بعد الإرسال
+                st.rerun()
+
+                # مسح النص في حقل النص
+                del st.session_state["chat_message"]
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
-
-
-
 
 
 
