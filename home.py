@@ -48,14 +48,16 @@ if not st.session_state["authenticated"]:
                     st.switch_page("pages/Supervisor.py")
                 elif st.session_state["permissions"] == "admin":
                     st.switch_page("pages/AdminDashboard.py")
-                else:
+                elif st.session_state["permissions"] == "user":
                     st.switch_page("pages/UserDashboard.py")
+                else:
+                    st.error("⚠️ صلاحية غير معروفة.")
             else:
                 st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
 else:
     # إعادة التوجيه حسب الصلاحية
     permission = st.session_state.get("permissions")
-    if permission == "supervisor":
+    if permission in ["supervisor", "sp"]:
         st.switch_page("pages/Supervisor.py")
     elif permission == "admin":
         st.switch_page("pages/AdminDashboard.py")
