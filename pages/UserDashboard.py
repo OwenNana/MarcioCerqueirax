@@ -108,24 +108,17 @@ selected_mentor = selected_option[0]
             else:
                 st.markdown(f"<p style='color:#8B0000'><b>🧑‍🏫 {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
-    new_msg = st.text_area("✏️ اكتب رسالتك هنا", height=100, key="chat_message")
+   new_msg = st.text_area("✏️ اكتب رسالتك هنا", height=100, key="chat_message")
+
 if st.button("📨 إرسال الرسالة"):
     if new_msg.strip():
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         chat_sheet.append_row([timestamp, username, selected_mentor, new_msg])
-        st.session_state["chat_message"] = ""  # ← هذا هو التفريغ
+        st.session_state["chat_message"] = ""  # ← تفريغ الحقل بعد الإرسال
         st.success("✅ تم إرسال الرسالة")
         st.rerun()
     else:
         st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
-
-        if new_msg.strip():
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            chat_sheet.append_row([timestamp, username, selected_mentor, new_msg])
-            st.success("✅ تم إرسال الرسالة")
-            st.rerun()
-        else:
-            st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
 # ===== التبويبات =====
 tabs = st.tabs(["💬 المحادثات", "📝 إدخال البيانات", "📊 تقارير المجموع"])
