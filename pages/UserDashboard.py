@@ -108,6 +108,8 @@ with tabs[0]:
                     worksheet.update_cell(row_index, 1, date_str)
                 for i, val in enumerate(values[1:], start=2):
                     worksheet.update_cell(row_index, i, val)
+                st.cache_data.clear()
+                data = load_data()
                 st.success("✅ تم حفظ البيانات بنجاح")
 
 
