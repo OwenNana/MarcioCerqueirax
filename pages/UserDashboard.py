@@ -48,7 +48,7 @@ with tabs[0]:
     st.title("📝 إدخال البيانات اليومية")
     with st.form("daily_form"):
         today = datetime.today().date()
-        allowed_dates = [today - timedelta(days=i) for i in range(3)]
+        allowed_dates = [today - timedelta(days=i) for i in range(7)]
         date = st.date_input("📅 التاريخ", today)
 
         if date not in allowed_dates:
