@@ -65,9 +65,16 @@ sp_name = sp_row["Mentor"].values[0] if not sp_row.empty else None
 
 
 # إضافة "full_name" إلى merged_df بناءً على "username"
-merged_df["full_name"] = merged_df["username"].apply(
-    lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0] if not users_df[users_df["username"] == x].empty else "غير موجود"
-)
+def get_full_name(username):
+    try:
+        # البحث عن full_name بناءً على username في users_df
+        full_name = users_df.loc[users_df["username"] == username, "full_name"].values[0]
+        return full_name
+    except IndexError:
+        # في حال لم يتم العثور على username في users_df
+        return "غير موجود"
+
+merged_df["full_name"] = merged_df["username"].apply(get_full_name)
 
 
 
