@@ -114,6 +114,10 @@ tabs = st.tabs([" تقرير إجمالي", "💬 المحادثات", "📋 ت�
 
 # ===== دالة عرض المحادثة =====
 
+
+
+
+
 def show_chat_supervisor():
     st.subheader("💬 الدردشة")
 
@@ -175,13 +179,38 @@ def show_chat_supervisor():
                 # رسالة تم إرسالها
                 st.success("✅ تم إرسال الرسالة")
 
-                # إعادة تحميل الصفحة بعد الإرسال
-                st.rerun()
+                # إعادة تحميل البيانات من ورقة الدردشة وعرض الرسالة المرسلة
+                chat_data = pd.DataFrame(chat_sheet.get_all_records())
+                chat_data = chat_data[chat_data["message"].notna()]
+                chat_data = chat_data[["timestamp", "from", "to", "message", "read_by_receiver"]]
+
+                # عرض الرسائل الجديدة مع الرسالة المرسلة
+                messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
+                                     ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
+                messages = messages.sort_values(by="timestamp")
+
+                if messages.empty:
+                    st.info("💬 لا توجد رسائل بعد.")
+                else:
+                    for _, msg in messages.iterrows():
+                        if msg["from"] == username:
+                            st.markdown(f"<p style='color:#8B0000'><b>‍ أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"<p style='color:#000080'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
                 # مسح النص في حقل النص
                 del st.session_state["chat_message"]
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+
+        # إضافة زر لمسح الدردشة
+        if st.button("❌ مسح الدردشة"):
+            confirmation = st.confirmation_dialog("هل أنت متأكد أنك تريد مسح جميع الرسائل؟")
+            if confirmation:
+                # مسح جميع الرسائل في ورقة الدردشة (تنظيف ورقة "chat")
+                chat_sheet.clear()
+                st.success("✅ تم مسح الدردشة بنجاح.")
+
 
 
 
