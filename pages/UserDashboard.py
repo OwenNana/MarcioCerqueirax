@@ -63,23 +63,6 @@ sp_row = admin_data[(admin_data["username"] == mentor_name)]
 sp_name = sp_row["Mentor"].values[0] if not sp_row.empty else None
 
 
-# التأكد من أن merged_df["username"] لا يحتوي على قيم فارغة أو NaN
-if merged_df["username"].isnull().any():
-    st.error("❌ يوجد قيم فارغة في عمود 'username'.")
-    st.stop()
-
-# إضافة "full_name" إلى merged_df بناءً على "username"
-def get_full_name(username):
-    try:
-        # البحث عن full_name بناءً على username في users_df
-        full_name = users_df.loc[users_df["username"] == username, "full_name"].values[0]
-        return full_name
-    except IndexError:
-        # في حال لم يتم العثور على username في users_df
-        return "غير موجود"
-
-# تطبيق دالة get_full_name على عمود "username"
-merged_df["full_name"] = merged_df["username"].apply(get_full_name)
 
 
 
