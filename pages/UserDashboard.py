@@ -84,7 +84,16 @@ def show_chat():
     if sp_name:
         options.append(sp_name)
 
-    selected_mentor = st.selectbox("📨 اختر الشخص الذي ترغب بمراسلته", options, index=0, format_func=lambda x: f" {x}")
+    if "selected_mentor_display" not in st.session_state:
+        st.session_state["selected_mentor_display"] = "اختر الشخص"
+
+    options_display = ["اختر الشخص"] + options
+    selected_mentor_display = st.selectbox("📨 اختر الشخص الذي ترغب بمراسلته", options_display, key="selected_mentor_display")
+
+    if selected_mentor_display != "اختر الشخص":
+        selected_mentor = selected_mentor_display
+    # ← هنا نكمل الكود السابق: جلب الرسائل، عرضها، إرسال، إلخ
+
 
     chat_sheet = spreadsheet.worksheet("chat")
     raw_data = chat_sheet.get_all_records()
