@@ -130,8 +130,9 @@ def show_chat():
         new_msg = st.text_area("✏️ اكتب رسالتك هنا", height=100)
         if st.button("📨 إرسال الرسالة"):
             if new_msg.strip():
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                timestamp = (datetime.utcnow() + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
                 chat_sheet.append_row([timestamp, username, selected_mentor, new_msg, ""])
+
                 st.success("✅ تم إرسال الرسالة")
                 st.rerun()
             else:
