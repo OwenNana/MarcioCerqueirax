@@ -25,7 +25,18 @@ SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/au
 creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
 creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
 client = gspread.authorize(creds)
-spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
+
+try:
+    spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
+except Exception:
+    st.error("❌ حدث خطأ أثناء الاتصال بقاعدة البيانات. حاول مرة أخرى.")
+    st.markdown("""<script>
+        setTimeout(function() {
+            window.location.href = "/home";
+        }, 1000);
+    </script>""", unsafe_allow_html=True)
+    st.stop()
+
 
 admin_sheet = spreadsheet.worksheet("admin")
 users_df = pd.DataFrame(admin_sheet.get_all_records())
