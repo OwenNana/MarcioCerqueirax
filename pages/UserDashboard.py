@@ -218,7 +218,7 @@ with tabs[1]:
                 st.error("❌ التاريخ غير صالح. لا يمكن حفظ البيانات لأكثر من أسبوع سابق فقط")
             else:
                 all_dates = worksheet.col_values(1)
-                date_str = date.strftime("%Y-%m-%d")
+                date_str = selected_date.strftime("%Y-%m-%d")
                 try:
                     row_index = all_dates.index(date_str) + 1
                 except ValueError:
