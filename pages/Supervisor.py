@@ -120,6 +120,8 @@ def show_chat_supervisor():
     if "selected_user_display" not in st.session_state:
         st.session_state["selected_user_display"] = "اختر الشخص"
 
+
+# تأكد من استخدام "full_name" بدلاً من "username" في جميع المحادثات
     options_display = ["اختر الشخص"] + [f"{full_name} ({role})" for full_name, role in all_user_options]
 
 
