@@ -76,6 +76,7 @@ def load_data():
     return df
 
 # ===== دالة عرض المحادثة =====
+
 def show_chat():
     st.markdown("### 💬 المحادثة مع المشرف أو السوبر مشرف")
 
@@ -95,12 +96,24 @@ def show_chat():
 
         chat_sheet = spreadsheet.worksheet("chat")
         raw_data = chat_sheet.get_all_records()
-        chat_data = pd.DataFrame(raw_data) if raw_data else pd.DataFrame(columns=["timestamp", "from", "to", "message"])
+        chat_data = pd.DataFrame(raw_data) if raw_data else pd.DataFrame(columns=["timestamp", "from", "to", "message", "read_by_receiver"])
 
         if not {"from", "to", "message", "timestamp"}.issubset(chat_data.columns):
             st.warning("⚠️ لم يتم العثور على الأعمدة الصحيحة في ورقة الدردشة.")
             return
 
+        # تحديث حالة القراءة
+        if "read_by_receiver" in chat_data.columns:
+            unread_indexes = chat_data[
+                (chat_data["from"] == selected_mentor) &
+                (chat_data["to"] == username) &
+                (chat_data["read_by_receiver"].astype(str).str.strip() == "")
+            ].index.tolist()
+
+            for i in unread_indexes:
+                chat_sheet.update_cell(i + 2, 5, "✓")  # الصف +2 لأن الصف الأول للعناوين
+
+        # استخراج الرسائل بعد التحديث
         messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_mentor)) |
                              ((chat_data["from"] == selected_mentor) & (chat_data["to"] == username))]
         messages = messages.sort_values(by="timestamp")
@@ -118,11 +131,12 @@ def show_chat():
         if st.button("📨 إرسال الرسالة"):
             if new_msg.strip():
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                chat_sheet.append_row([timestamp, username, selected_mentor, new_msg])
+                chat_sheet.append_row([timestamp, username, selected_mentor, new_msg, ""])
                 st.success("✅ تم إرسال الرسالة")
                 st.rerun()
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+
 
 # ===== التبويبات =====
 tabs = st.tabs(["💬 المحادثات", "📝 إدخال البيانات", "📊 تقارير المجموع"])
