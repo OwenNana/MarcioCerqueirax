@@ -69,7 +69,7 @@ if permissions == "supervisor":
 all_user_options = sorted(all_user_options, key=lambda x: ({"مسؤول": 0, "مشرف": 1, "مستخدم": 2}[x[1]], x[0]))
 
 # ====== تبويبات الصفحة ======
-tabs = st.tabs(["💬 المحادثات", " تقرير إجمالي", "📋 تجميعي الكل", "📌 تجميعي بند", " تقرير فردي", "📈 رسوم بيانية"])
+tabs = st.tabs([" تقرير إجمالي", "💬 المحادثات", "📋 تجميعي الكل", "📌 تجميعي بند", " تقرير فردي", "📈 رسوم بيانية"])
 
 # ===== دالة عرض المحادثة =====
 def show_chat_supervisor():
@@ -106,45 +106,8 @@ def show_chat_supervisor():
         else:
             st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
-# ===== تبويب 1: المحادثات =====
+# ===== تبويب 1: تقرير إجمالي (أصبح الأول الآن) =====
 with tabs[0]:
-    show_chat_supervisor()
-# ===== تحميل بيانات الطلاب لعرض التقارير =====
-if permissions == "supervisor":
-    filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
-elif permissions == "sp":
-    supervised_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
-    filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin(supervised_supervisors))]
-else:
-    filtered_users = pd.DataFrame()
-
-all_data = []
-users_with_data = []
-all_usernames = filtered_users["username"].tolist()
-
-for _, user in filtered_users.iterrows():
-    user_name = user["username"]
-    sheet_name = user["sheet_name"]
-    try:
-        user_ws = spreadsheet.worksheet(sheet_name)
-        user_records = user_ws.get_all_records()
-        df = pd.DataFrame(user_records)
-        if "التاريخ" in df.columns:
-            df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
-            df.insert(0, "username", user_name)
-            all_data.append(df)
-            users_with_data.append(user_name)
-    except Exception as e:
-        st.warning(f"⚠️ خطأ في تحميل بيانات {user_name}: {e}")
-
-if not all_data:
-    st.info("ℹ️ لا توجد بيانات.")
-    st.stop()
-
-merged_df = pd.concat(all_data, ignore_index=True)
-
-# ===== تبويب 2: تقرير إجمالي =====
-with tabs[1]:
     st.subheader(" مجموع درجات كل مستخدم")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_2"):
         st.cache_data.clear()
@@ -156,6 +119,9 @@ with tabs[1]:
     for user, row in grouped.iterrows():
         st.markdown(f"### <span style='color: #006400;'>{user} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
 
+# ===== تبويب 2: المحادثات (أصبح الثاني الآن) =====
+with tabs[1]:
+    show_chat_supervisor()
 # ===== تبويب 3: تجميعي الكل =====
 with tabs[2]:
     st.subheader("📋 مجموع الدرجات لكل مستخدم")
