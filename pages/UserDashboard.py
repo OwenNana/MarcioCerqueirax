@@ -51,7 +51,8 @@ tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المج�
 
 # ===== التبويب الأول: إدخال البيانات =====
 with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها بشكل صحيح
-    st.title("📝 إدخال البيانات اليومية")
+    st.title(f"👋 أهلاً {username}")  # عرض اسم المستخدم بعد "أهلاً"
+    
     with st.form("daily_form"):
         today = datetime.today().date()
         allowed_dates = [today - timedelta(days=i) for i in range(7)]
@@ -62,7 +63,9 @@ with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها �
 
         values = [date.strftime("%Y-%m-%d")]
 
+        # زيادة حجم الخط للعناوين (الأعمدة) في جميع التبويبات
         # الأعمدة الخمسة الأولى
+        st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأولى</h3>", unsafe_allow_html=True)
         options_1 = ["في المسجد جماعة", "في المنزل جماعة", "في المسجد منفرد", "في المنزل منفرد", "خارج الوقت"]
         ratings_1 = {
             "في المسجد جماعة": 5,
@@ -73,10 +76,12 @@ with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها �
         }
 
         for i, col in enumerate(columns[1:6]):
+            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
             rating = st.radio(col, options=options_1, index=0, key=col)
             values.append(str(ratings_1[rating]))
 
         # الأعمدة الخمسة التالية
+        st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الثانية</h3>", unsafe_allow_html=True)
         options_2 = ["نعم", "ليس كاملاً", "لا"]
         ratings_2 = {
             "نعم": 5,
@@ -85,10 +90,12 @@ with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها �
         }
 
         for i, col in enumerate(columns[6:11]):
+            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
             rating = st.radio(col, options=options_2, index=0, key=col)
             values.append(str(ratings_2[rating]))
 
         # الأعمدة المتبقية
+        st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأخيرة</h3>", unsafe_allow_html=True)
         options_3 = ["نعم", "لا"]
         ratings_3 = {
             "نعم": 3,
@@ -96,6 +103,7 @@ with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها �
         }
 
         for i, col in enumerate(columns[11:]):
+            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
             rating = st.radio(col, options=options_3, index=0, key=col)
             values.append(str(ratings_3[rating]))
 
@@ -125,6 +133,10 @@ with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها �
 # ===== التبويب الثاني: تقارير المجموع =====
 with tabs[1]:  # التبويب الثاني
     st.title("📊 مجموع البنود للفترة")
+    
+    # زيادة حجم الخط للعناوين في هذا التبويب أيضًا
+    st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>التقارير</h3>", unsafe_allow_html=True)
+
     df = pd.DataFrame(worksheet.get_all_records())
     df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
 
