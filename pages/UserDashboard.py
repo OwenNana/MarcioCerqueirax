@@ -159,7 +159,12 @@ with tabs[0]:
         senders = unread_msgs["from"].unique().tolist()
         if senders:
             sender_list = "، ".join(senders)
-            st.markdown(f"<p style='color:red; font-weight:bold;'>📬 يوجد لديك رسائل لم تطلع عليها من: ({sender_list})</p>", unsafe_allow_html=True)
+            st.markdown(f"""
+<div dir='rtl' style='text-align: right; color:red; font-weight:bold;'>
+📬 يوجد لديك رسائل لم تطلع عليها من: ({sender_list})
+</div>
+""", unsafe_allow_html=True)
+
 
     show_chat()
 
