@@ -26,42 +26,51 @@ creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
 creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
 client = gspread.authorize(creds)
 spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
+
 admin_sheet = spreadsheet.worksheet("admin")
 users_df = pd.DataFrame(admin_sheet.get_all_records())
+chat_sheet = spreadsheet.worksheet("chat")
 
 username = st.session_state.get("username")
 
 # ===== إعداد الصفحة =====
-st.set_page_config(page_title="📊 لوحة المشرف", page_icon="📊", layout="wide")
+st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
 st.title(f"👋 أهلاً {username}")
 
-# ===== تحديد الطلاب =====
-if permissions == "supervisor":
-    assigned_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]["username"].tolist()
-elif permissions == "sp":
-    my_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
-    assigned_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin(my_supervisors))]["username"].tolist()
-else:
-    assigned_users = []
+# ===== تحديد المستخدمين المتاحين للمحادثة =====
+all_user_options = []
 
-assigned_users.sort()
+if permissions == "sp":
+    my_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
+    all_user_options += [(s, "مشرف") for s in my_supervisors]
+
+if permissions in ["supervisor", "sp"]:
+    assigned_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin([username] + [s for s, _ in all_user_options]))]
+    all_user_options += [(u, "مستخدم") for u in assigned_users["username"].tolist()]
+
+# إضافة سوبر مشرفين (إن وُجدوا) إلى القائمة للدردشة معهم
+if permissions == "supervisor":
+    my_sp = users_df[(users_df["username"] == username)]["Mentor"].values
+    if my_sp.size > 0:
+        all_user_options.insert(0, (my_sp[0], "مسؤول"))
+
+# ترتيب القائمة حسب النوع ثم الاسم
+all_user_options = sorted(all_user_options, key=lambda x: ({"مسؤول": 0, "مشرف": 1, "مستخدم": 2}[x[1]], x[0]))
+
+# ====== تبويبات الصفحة ======
+tabs = st.tabs(["💬 المحادثات", "👤 تقرير إجمالي", "📋 تجميعي الكل", "📌 تجميعي بند", "👤 تقرير فردي", "📈 رسوم بيانية"])
 
 # ===== دالة عرض المحادثة =====
 def show_chat_supervisor():
-    st.markdown("### 💬 الدردشة مع الطلاب")
-    if not assigned_users:
-        st.info("⚠️ لا يوجد طلاب لعرض محادثاتهم.")
-        return
+    st.subheader("💬 الدردشة")
+    options_display = [f"{name} ({role})" for name, role in all_user_options]
+    selected_display = st.selectbox("اختر الشخص", options_display)
+    selected_user = selected_display.split(" (")[0]
 
-    chat_sheet = spreadsheet.worksheet("chat")
-    raw_data = chat_sheet.get_all_records()
-    chat_data = pd.DataFrame(raw_data) if raw_data else pd.DataFrame(columns=["timestamp", "from", "to", "message"])
+    chat_data = pd.DataFrame(chat_sheet.get_all_records())
+    chat_data = chat_data[chat_data["message"].notna()]
+    chat_data = chat_data[["timestamp", "from", "to", "message"]]
 
-    if not {"from", "to", "message", "timestamp"}.issubset(chat_data.columns):
-        st.warning("⚠️ لم يتم العثور على الأعمدة الصحيحة في ورقة الدردشة.")
-        return
-
-    selected_user = st.selectbox("اختر الطالب", assigned_users)
     messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
                          ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
     messages = messages.sort_values(by="timestamp")
@@ -75,35 +84,27 @@ def show_chat_supervisor():
             else:
                 st.markdown(f"<p style='color:#000080'><b>🙋‍♂️ {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
-    new_msg = st.text_area("✏️ اكتب رسالتك للطالب", height=100)
+    new_msg = st.text_area("✏️ اكتب رسالتك", height=100)
     if st.button("📨 إرسال الرسالة"):
         if new_msg.strip():
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            chat_sheet.append_row([timestamp, username, selected_user, new_msg])
+            timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")  # بتوقيت السعودية
+            chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
             st.success("✅ تم إرسال الرسالة")
             st.rerun()
         else:
             st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
-# ===== تبويبات التقارير =====
-tabs = st.tabs([
-    "💬 المحادثات", 
-    "👤 تقرير إجمالي", 
-    "📋 تجميعي الكل", 
-    "📌 تجميعي بند", 
-    "👤 تقرير فردي", 
-    "📈 رسوم بيانية"
-])
 
 # ===== تبويب 1: المحادثات =====
 with tabs[0]:
     show_chat_supervisor()
-
-# ===== تحميل بيانات المستخدمين =====
+# ===== تحميل بيانات الطلاب لعرض التقارير =====
 if permissions == "supervisor":
     filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
 elif permissions == "sp":
     supervised_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
     filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin(supervised_supervisors))]
+else:
+    filtered_users = pd.DataFrame()
 
 all_data = []
 users_with_data = []
