@@ -203,13 +203,13 @@ def show_chat_supervisor():
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
-        # إضافة زر لمسح الدردشة
+        # إضافة زر لمسح الدردشة داخل مربع النص
         if st.button("❌ مسح الدردشة"):
-            confirmation = st.confirmation_dialog("هل أنت متأكد أنك تريد مسح جميع الرسائل؟")
-            if confirmation:
-                # مسح جميع الرسائل في ورقة الدردشة (تنظيف ورقة "chat")
-                chat_sheet.clear()
-                st.success("✅ تم مسح الدردشة بنجاح.")
+            # مسح جميع الرسائل في ورقة الدردشة (تنظيف ورقة "chat")
+            chat_sheet.clear()
+            # مسح محتويات مربع النص
+            st.session_state["chat_message"] = ""
+            st.success("✅ تم مسح الدردشة بنجاح.")
 
 
 
