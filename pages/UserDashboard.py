@@ -122,6 +122,21 @@ tabs = st.tabs(["💬 المحادثات", "📝 إدخال البيانات", "
 
 # ===== التبويب الأول: المحادثة =====
 with tabs[0]:
+
+    st.markdown(
+    """
+    <style>
+    body, .stTextInput, .stTextArea, .stSelectbox, .stButton, .stMarkdown, .stDataFrame {
+        direction: rtl;
+        text-align: right;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+    
+    
     st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
     refresh_button("refresh_chat")
     show_chat()
