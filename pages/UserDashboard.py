@@ -6,8 +6,9 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 
 # ===== إعادة التوجيه إلى صفحة تسجيل الدخول إذا لم يتم تسجيل الدخول =====
-if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
-    st.switch_page("home.py")
+if "اسم المستخدم" not in st.session_state or "الصفحة" not in st.session_state:
+    st.error("❌ يجب تسجيل الدخول أولاً.")
+    st.stop()
 
 # ===== الاتصال بـ Google Sheets =====
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -19,23 +20,19 @@ client = gspread.authorize(creds)
 st.set_page_config(page_title="تقييم اليوم", page_icon="📋", layout="wide")
 
 # ===== تحقق من صلاحية المستخدم =====
-if "username" not in st.session_state or "sheet_url" not in st.session_state:
-    st.error("❌ يجب تسجيل الدخول أولاً.")
-    st.stop()
-
-if st.session_state["permissions"] != "user":
-    if st.session_state["permissions"] == "admin":
+if st.session_state["الصلاحيات"] != "user":
+    if st.session_state["الصلاحيات"] == "admin":
         st.warning("👤 تم تسجيل الدخول كأدمن، سيتم تحويلك للوحة التحكم...")
         st.switch_page("pages/AdminDashboard.py")
-    elif st.session_state["permissions"] in ["supervisor", "sp"]:
+    elif st.session_state["الصلاحيات"] in ["supervisor", "sp"]:
         st.warning("👤 تم تسجيل الدخول كمشرف، سيتم تحويلك للتقارير...")
         st.switch_page("pages/Supervisor.py")
     else:
         st.error("⚠️ صلاحية غير معروفة.")
     st.stop()
 
-username = st.session_state["username"]
-sheet_name = f"بيانات - {username}"
+اسم_المستخدم = st.session_state["اسم المستخدم"]
+الصفحة = f"بيانات - {اسم_المستخدم}"
 try:
     spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
 except Exception:
@@ -47,17 +44,17 @@ except Exception:
     </script>""", unsafe_allow_html=True)
     st.stop()
 
-worksheet = spreadsheet.worksheet(sheet_name)
+worksheet = spreadsheet.worksheet(الصفحة)
 columns = worksheet.row_values(1)
 
-# ===== جلب اسم المشرف =====
+# ===== جلب اسم المرجع =====
 admin_sheet = spreadsheet.worksheet("admin")
 admin_data = pd.DataFrame(admin_sheet.get_all_records())
-mentor_name = admin_data.loc[admin_data["username"] == username, "Mentor"].values[0]
+mentor_name = admin_data.loc[admin_data["اسم المستخدم"] == اسم_المستخدم, "المرجع"].values[0]
 
 # جلب السوبر مشرف إن وجد
-sp_row = admin_data[(admin_data["username"] == mentor_name)]
-sp_name = sp_row["Mentor"].values[0] if not sp_row.empty else None
+sp_row = admin_data[(admin_data["اسم المستخدم"] == mentor_name)]
+sp_name = sp_row["المرجع"].values[0] if not sp_row.empty else None
 
 if not columns:
     st.error("❌ لم يتم العثور على الأعمدة في ورقة البيانات.")
@@ -86,30 +83,30 @@ def show_chat():
 
     chat_sheet = spreadsheet.worksheet("chat")
     raw_data = chat_sheet.get_all_records()
-    chat_data = pd.DataFrame(raw_data) if raw_data else pd.DataFrame(columns=["timestamp", "from", "to", "message"])
+    chat_data = pd.DataFrame(raw_data) if raw_data else pd.DataFrame(columns=["وقت الدردشة", "من", "إلى", "الرسالة", "تمت قراءتها"])
 
-    if not {"from", "to", "message", "timestamp"}.issubset(chat_data.columns):
+    if not {"من", "إلى", "الرسالة", "وقت الدردشة"}.issubset(chat_data.columns):
         st.warning("⚠️ لم يتم العثور على الأعمدة الصحيحة في ورقة الدردشة.")
         return
 
-    messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_mentor)) |
-                         ((chat_data["from"] == selected_mentor) & (chat_data["to"] == username))]
-    messages = messages.sort_values(by="timestamp")
+    messages = chat_data[((chat_data["من"] == اسم_المستخدم) & (chat_data["إلى"] == selected_mentor)) |
+                         ((chat_data["من"] == selected_mentor) & (chat_data["إلى"] == اسم_المستخدم))]
+    messages = messages.sort_values(by="وقت الدردشة")
 
     if messages.empty:
         st.info("💬 لا توجد رسائل حالياً.")
     else:
         for _, msg in messages.iterrows():
-            if msg["from"] == username:
-                st.markdown(f"<p style='color:#000080'><b>🙋‍♂️ أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
+            if msg["من"] == اسم_المستخدم:
+                st.markdown(f"<p style='color:#000080'><b>🙋‍♂️ أنت:</b> {msg['الرسالة']}</p>", unsafe_allow_html=True)
             else:
-                st.markdown(f"<p style='color:#8B0000'><b>🧑‍🏫 {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='color:#8B0000'><b>🧑‍🏫 {msg['من']}:</b> {msg['الرسالة']}</p>", unsafe_allow_html=True)
 
     new_msg = st.text_area("✏️ اكتب رسالتك هنا", height=100)
     if st.button("📨 إرسال الرسالة"):
         if new_msg.strip():
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            chat_sheet.append_row([timestamp, username, selected_mentor, new_msg])
+            chat_sheet.append_row([timestamp, اسم_المستخدم, selected_mentor, new_msg, ""])
             st.success("✅ تم إرسال الرسالة")
             st.rerun()
         else:
@@ -120,7 +117,7 @@ tabs = st.tabs(["💬 المحادثات", "📝 إدخال البيانات", "
 
 # ===== التبويب الأول: المحادثة =====
 with tabs[0]:
-    st.title(f"👋 أهلاً {username} | 🧑‍🏫 مجموعتك: {mentor_name}")
+    st.title(f"👋 أهلاً {اسم_المستخدم} | 🧑‍🏫 مجموعتك: {mentor_name}")
     refresh_button("refresh_chat")
     show_chat()
 # ===== التبويب الثاني: إدخال البيانات =====
