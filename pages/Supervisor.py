@@ -132,14 +132,19 @@ def show_chat_supervisor():
             st.info("💬 لا توجد رسائل بعد.")
             return
 
+        # طباعة الأعمدة لفحصها
+        st.write("الأعمدة الموجودة في ورقة الدردشة:", chat_data.columns)
+
+        # تحقق من وجود العمود "to"
+        if "to" not in chat_data.columns:
+            st.warning("⚠️ العمود 'to' غير موجود في ورقة الدردشة.")
+            return
+
         # تحقق من الأعمدة المطلوبة
         required_columns = {"timestamp", "from", "to", "message", "read_by_receiver"}
         if not required_columns.issubset(chat_data.columns):
             st.warning(f"⚠️ الأعمدة المطلوبة غير موجودة في ورقة الدردشة. الأعمدة الموجودة: {chat_data.columns}")
             return
-
-        # طباعة الأعمدة لفحصها (للتأكد)
-        st.write("الأعمدة الموجودة في ورقة الدردشة:", chat_data.columns)
 
         chat_data = chat_data[chat_data["message"].notna()]
         chat_data = chat_data[["timestamp", "from", "to", "message", "read_by_receiver"]]
@@ -182,6 +187,9 @@ def show_chat_supervisor():
                 del st.session_state["chat_message"]
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+
+
+
 
 # ===== تبويب 1: تقرير إجمالي =====
 with tabs[0]:
