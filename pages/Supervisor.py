@@ -102,9 +102,15 @@ for user in users:
 
 # ===== إضافة بيانات المستخدمين الذين لم يعبؤوا بياناتهم =====
 all_usernames_set = set(all_usernames)
-merged_usernames_set = set(merged_df["username"]) if 'merged_df' in locals() else set()
+merged_usernames_set = set()
 
-# الأشخاص الذين لم يعبئوا البيانات في فترة التواريخ المحددة
+# إذا كانت البيانات المدمجة (merged_df) فارغة، يجب البدء بدمج البيانات المفقودة
+if 'merged_df' in locals():
+    merged_usernames_set = set(merged_df["username"])
+else:
+    merged_df = pd.DataFrame()
+
+# الأشخاص الذين لم يعبؤوا البيانات في فترة التواريخ المحددة
 missing_usernames = all_usernames_set - merged_usernames_set
 missing_data = []
 
