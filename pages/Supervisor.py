@@ -295,11 +295,8 @@ with tabs[3]:
     for user in missing_users:
         activity_sum[user] = 0
 
-    # تحويل activity_sum إلى DataFrame وإعادة تعيين الفهرس بدون ترقيم تسلسلي
-    activity_sum_df = activity_sum.reset_index(drop=False)  # الاحتفاظ بالفهرس مع "full_name"
-
-    # عرض النتائج مع "full_name" بدون ترقيم تسلسلي
-    st.dataframe(activity_sum_df, use_container_width=True)
+    # عرض البيانات مع "الاسم الكامل" في activity_sum
+    st.dataframe(activity_sum, use_container_width=True)
 
 # ===== تبويب 5: تقرير فردي =====
 with tabs[4]:
