@@ -33,8 +33,8 @@ users_df = pd.DataFrame(admin_sheet.get_all_records())
 username = st.session_state.get("username")
 
 # ===== إعداد الصفحة =====
-st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
-st.title("📊 تقارير المشرف")
+st.set_page_config(page_title="📊 لوحة المشرف", page_icon="📊", layout="wide")
+st.title(f"👋 أهلاً {username}")
 
 # ===== تحديد الطلاب =====
 if permissions == "supervisor":
