@@ -155,20 +155,14 @@ def show_chat_supervisor():
 
         new_msg = st.text_area("✏️ اكتب رسالتك", height=100, key="chat_message")
         if st.button("📨 إرسال الرسالة"):
-            if new_msg.strip():  # تأكد أن الرسالة ليست فارغة
+            if new_msg.strip():
                 timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
                 chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
-        
-        # تم إرسال الرسالة
-        st.success("✅ تم إرسال الرسالة")  # تأكد من ظهور الرسالة
-
-        # إعادة تعيين النص في الـ text_area
-        del st.session_state["chat_message"]
-
-        # إعادة تحميل الصفحة بعد إرسال الرسالة
-        st.rerun()
-    else:
-        st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+                st.session_state["chat_message"] = ""
+                st.success("✅ تم إرسال الرسالة")
+                st.rerun()
+            else:
+                st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
 # ===== تبويب 1: تقرير إجمالي =====
 with tabs[0]:
