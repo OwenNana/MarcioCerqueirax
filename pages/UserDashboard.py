@@ -146,13 +146,7 @@ tabs = st.tabs(["📝 إدخال البيانات", "💬 المحادثات", "
 # ===== التبويب الأول: إدخال البيانات =====
 with tabs[0]:
 
-
-
-    st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
-    refresh_button("refresh_chat")
-    show_chat()
-
-
+   
     st.markdown(
         """
         <style>
@@ -298,6 +292,9 @@ with tabs[1]:
     unsafe_allow_html=True
 )
 
+st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
+    refresh_button("refresh_chat")
+    show_chat()
     
 
 
