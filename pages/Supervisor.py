@@ -138,11 +138,6 @@ def show_chat_supervisor():
             st.warning(f"⚠️ الأعمدة المطلوبة غير موجودة في ورقة الدردشة. الأعمدة الموجودة: {chat_data.columns}")
             return
 
-        # تحقق من وجود بيانات صالحة في الأعمدة
-        if chat_data["to"].isna().all() or chat_data["message"].isna().all():
-            st.info("💬 لا توجد محادثات سابقة مع هذا الشخص.")
-            return
-
         # حذف أي بيانات فارغة في الحقول المطلوبة
         chat_data = chat_data.dropna(subset=["timestamp", "from", "to", "message", "read_by_receiver"])
 
@@ -184,6 +179,10 @@ def show_chat_supervisor():
                 del st.session_state["chat_message"]
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+
+
+
+
 
 
 
