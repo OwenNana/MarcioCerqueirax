@@ -138,37 +138,51 @@ def show_chat():
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
 
-# ===== التبويبات =====
-tabs = st.tabs(["💬 المحادثات", "📝 إدخال البيانات", "📊 تقارير المجموع"])
 
-# ===== التبويب الأول: المحادثة =====
+
+# ===== التبويبات =====
+tabs = st.tabs(["📝 إدخال البيانات", "💬 المحادثات", "📊 تقارير المجموع"])
+
+# ===== التبويب الأول: إدخال البيانات =====
 with tabs[0]:
 
     st.markdown(
-    """
-    <style>
-    body, .stTextInput, .stTextArea, .stSelectbox, .stButton, .stMarkdown, .stDataFrame {
-        direction: rtl;
-        text-align: right;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+        """
+        <style>
+        body, .stTextInput, .stTextArea, .stSelectbox, .stButton, .stMarkdown, .stDataFrame {
+            direction: rtl;
+            text-align: right;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
-    
-    
-    st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
-    refresh_button("refresh_chat")
-    show_chat()
-
-    
-
-
-# ===== التبويب الثاني: إدخال البيانات =====
-with tabs[1]:
     st.title("📝 المحاسبة الذاتية")
     refresh_button("refresh_tab1")
+
+    # ===== تنبيه بالرسائل غير المقروءة =====
+    chat_sheet = spreadsheet.worksheet("chat")
+    chat_data = pd.DataFrame(chat_sheet.get_all_records())
+
+    if "read_by_receiver" in chat_data.columns:
+        unread_msgs = chat_data[
+            (chat_data["to"] == username) &
+            (chat_data["message"].notna()) &
+            (chat_data["read_by_receiver"].astype(str).str.strip() == "")
+        ]
+        senders = unread_msgs["from"].unique().tolist()
+        if senders:
+            sender_list = "، ".join(senders)
+            st.markdown(f"""
+    <table style="width:100%;">
+    <tr>
+    <td style="direction: rtl; text-align: right; color: red; font-weight: bold; font-size: 16px;">
+    📬 يوجد لديك رسائل لم تطلع عليها من: ({sender_list})
+    </td>
+    </tr>
+    </table>
+    """, unsafe_allow_html=True)
 
     with st.form("daily_form"):
         today = datetime.today().date()
@@ -214,13 +228,7 @@ with tabs[1]:
             rating = st.radio(col, options_1, index=0, key=col)
             values.append(str(ratings_1[rating]))
 
-
-    
-    
-    
-    
-    
-    # الاختيارات الثانية
+        # الاختيارات الثانية
         st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الثانية</h3>", unsafe_allow_html=True)
         options_2 = ["نعم", "ليس كاملاً", "لا"]
         ratings_2 = {
@@ -247,6 +255,7 @@ with tabs[1]:
             rating = st.radio(col, options_3, index=0, key=col)
             values.append(str(ratings_3[rating]))
 
+        # زر الإرسال
         submit = st.form_submit_button("💾 حفظ")
 
         if submit:
@@ -266,60 +275,21 @@ with tabs[1]:
                 st.cache_data.clear()
                 data = load_data()
                 st.success("✅ تم الحفظ بنجاح والاتصال بقاعدة البيانات")
+# ===== التبويب الثاني: المحادثة =====
+with tabs[1]:
 
-# ===== التبويب الثالث: تقارير المجموع =====
-with tabs[2]:
-    st.title("📊 مجموع البنود للفترة")
-    refresh_button("refresh_tab2")
+    st.markdown(
+    """
+    <style>
+    body, .stTextInput, .stTextArea, .stSelectbox, .stButton, .stMarkdown, .stDataFrame {
+        direction: rtl;
+        text-align: right;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-    st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>التقارير</h3>", unsafe_allow_html=True)
-
-    df = pd.DataFrame(worksheet.get_all_records())
-    df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
-    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-
-    if "البند" in df.columns and "المجموع" in df.columns:
-        df = df.dropna(subset=["البند", "المجموع"])
-
-    if "رقم التسلسل" in df.columns:
-        df = df.drop(columns=["رقم التسلسل"])
-
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input("من تاريخ", datetime.today().date() - timedelta(days=7))
-    with col2:
-        end_date = st.date_input("إلى تاريخ", datetime.today().date())
-
-    mask = (df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))
-    filtered = df[mask].drop(columns=["التاريخ"], errors="ignore")
-
-    if filtered.empty:
-        st.warning("⚠️ لا توجد بيانات في الفترة المحددة.")
-    else:
-        totals = filtered.sum(numeric_only=True)
-        total_score = totals.sum()
-
-        st.metric(label="📌 مجموعك الكلي لجميع البنود", value=int(total_score))
-
-        result_df = pd.DataFrame(totals, columns=["المجموع"])
-        result_df.index.name = "البند"
-        result_df = result_df.reset_index()
-        result_df = result_df.sort_values(by="المجموع", ascending=True)
-
-        result_df = result_df[["المجموع", "البند"]]
-        result_df["البند"] = result_df["البند"].apply(lambda x: f"<p style='color:#8B0000; text-align:center'>{x}</p>")
-        result_df["المجموع"] = result_df["المجموع"].apply(lambda x: f"<p style='color:#000080; text-align:center'>{x}</p>")
-
-        st.markdown(result_df.to_html(escape=False, index=False), unsafe_allow_html=True)
-
-    
-    result_df = pd.DataFrame(totals, columns=["المجموع"])
-    result_df.index.name = "البند"
-    result_df = result_df.reset_index()
-    result_df = result_df.sort_values(by="المجموع", ascending=True)
-
-    result_df = result_df[["المجموع", "البند"]]
-    result_df["البند"] = result_df["البند"].apply(lambda x: f"<p style='color:#8B0000; text-align:center'>{x}</p>")
-    result_df["المجموع"] = result_df["المجموع"].apply(lambda x: f"<p style='color:#000080; text-align:center'>{x}</p>")
-
-    st.markdown(result_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+    st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
+    refresh_button("refresh_chat")
+    show_chat()
