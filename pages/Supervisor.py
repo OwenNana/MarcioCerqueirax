@@ -296,9 +296,9 @@ with tabs[3]:
         activity_sum[user] = 0
 
     # تخصيص عرض البيانات في DataFrame بحيث يتسع "full_name"
-    activity_sum_df = activity_sum.reset_index()  # تحويل البيانات إلى DataFrame لعرضها
+    activity_sum_df = activity_sum.reset_index(drop=True)  # إزالة الفهرس والتسلسل
 
-    # عرض النتائج مع توسيع حقل "full_name"
+    # عرض النتائج مع توسيع حقل "full_name" بدون ترقيم تسلسلي
     st.dataframe(activity_sum_df, use_container_width=True)
 
 # ===== تبويب 5: تقرير فردي =====
