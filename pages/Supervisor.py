@@ -69,7 +69,7 @@ if permissions == "supervisor":
 all_user_options = sorted(all_user_options, key=lambda x: ({"مسؤول": 0, "مشرف": 1, "مستخدم": 2}[x[1]], x[0]))
 
 # ====== تبويبات الصفحة ======
-tabs = st.tabs(["💬 المحادثات", "👤 تقرير إجمالي", "📋 تجميعي الكل", "📌 تجميعي بند", "👤 تقرير فردي", "📈 رسوم بيانية"])
+tabs = st.tabs(["💬 المحادثات", " تقرير إجمالي", "📋 تجميعي الكل", "📌 تجميعي بند", " تقرير فردي", "📈 رسوم بيانية"])
 
 # ===== دالة عرض المحادثة =====
 def show_chat_supervisor():
@@ -91,9 +91,9 @@ def show_chat_supervisor():
     else:
         for _, msg in messages.iterrows():
             if msg["from"] == username:
-                st.markdown(f"<p style='color:#8B0000'><b>👨‍🏫 أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='color:#8B0000'><b>‍ أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
             else:
-                st.markdown(f"<p style='color:#000080'><b>🙋‍♂️ {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='color:#000080'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
     new_msg = st.text_area("✏️ اكتب رسالتك", height=100, key="chat_message")
     if st.button("📨 إرسال الرسالة"):
@@ -145,7 +145,7 @@ merged_df = pd.concat(all_data, ignore_index=True)
 
 # ===== تبويب 2: تقرير إجمالي =====
 with tabs[1]:
-    st.subheader("👤 مجموع درجات كل مستخدم")
+    st.subheader(" مجموع درجات كل مستخدم")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_2"):
         st.cache_data.clear()
         st.rerun()
@@ -180,7 +180,7 @@ with tabs[3]:
 
 # ===== تبويب 5: تقرير فردي =====
 with tabs[4]:
-    st.subheader("👤 تقرير تفصيلي لمستخدم")
+    st.subheader(" تقرير تفصيلي لمستخدم")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_5"):
         st.cache_data.clear()
         st.rerun()
