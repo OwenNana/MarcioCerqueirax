@@ -14,6 +14,11 @@ client = gspread.authorize(creds)
 st.set_page_config(page_title="تسجيل الدخول", page_icon="🔐")
 st.title("🔐 تسجيل الدخول")
 
+# ===== زر التحديث اليدوي =====
+if st.button("🔄 جلب المعلومات من قاعدة البيانات"):
+    st.cache_data.clear()
+    st.success("✅ تم تحديث البيانات")
+
 # تحقق من صلاحية المستخدم
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
