@@ -36,7 +36,17 @@ if st.session_state["permissions"] != "user":
 
 username = st.session_state["username"]
 sheet_name = f"بيانات - {username}"
-spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
+try:
+    spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
+except Exception:
+    st.error("❌ حدث خطأ أثناء الاتصال بقاعدة البيانات. حاول مرة أخرى.")
+    st.markdown("""<script>
+        setTimeout(function() {
+            window.location.href = "/home";
+        }, 1000);
+    </script>""", unsafe_allow_html=True)
+    st.stop()
+
 worksheet = spreadsheet.worksheet(sheet_name)
 columns = worksheet.row_values(1)
 
