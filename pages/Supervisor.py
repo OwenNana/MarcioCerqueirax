@@ -127,19 +127,16 @@ def show_chat_supervisor():
 
         chat_data = pd.DataFrame(chat_sheet.get_all_records())
 
-        # تحقق من أن البيانات ليست فارغة
-        if chat_data.empty:
-            st.info("💬 لا توجد رسائل بعد.")
-            return
-
-        # تحقق من وجود الأعمدة المطلوبة
+        # تحقق من أن الأعمدة المطلوبة موجودة في البيانات
         required_columns = {"timestamp", "from", "to", "message", "read_by_receiver"}
         if not required_columns.issubset(chat_data.columns):
             st.warning(f"⚠️ الأعمدة المطلوبة غير موجودة في ورقة الدردشة. الأعمدة الموجودة: {chat_data.columns}")
             return
 
-        # حذف أي بيانات فارغة في الحقول المطلوبة
-        chat_data = chat_data.dropna(subset=["timestamp", "from", "to", "message", "read_by_receiver"])
+        # تحقق من أن عمود "message" ليس فارغًا
+        if chat_data["message"].isna().all():
+            st.info("💬 لا توجد محادثات سابقة مع هذا الشخص.")
+            return
 
         # تحديث حالة القراءة
         unread_indexes = chat_data[
