@@ -46,6 +46,20 @@ username = st.session_state.get("username")
 
 # ===== إعداد الصفحة =====
 st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
+
+# ===== ضبط اتجاه النص إلى اليمين =====
+st.markdown(
+    """
+    <style>
+    body, .stTextInput, .stTextArea, .stSelectbox, .stButton, .stMarkdown, .stDataFrame {
+        direction: rtl;
+        text-align: right;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 st.title(f"👋 أهلاً {username}")
 
 # ===== تحديد المستخدمين المتاحين للمحادثة =====
