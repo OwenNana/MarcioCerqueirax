@@ -126,7 +126,7 @@ def show_chat_supervisor():
         selected_user = selected_display.split(" (")[0]
 
         chat_data = pd.DataFrame(chat_sheet.get_all_records())
-        
+
         # تحقق من أن البيانات ليست فارغة
         if chat_data.empty:
             st.info("💬 لا توجد رسائل بعد.")
@@ -138,14 +138,9 @@ def show_chat_supervisor():
             st.warning(f"⚠️ الأعمدة المطلوبة غير موجودة في ورقة الدردشة. الأعمدة الموجودة: {chat_data.columns}")
             return
 
-        # تحقق من أن عمود "message" ليس فارغًا
-        if chat_data["message"].isna().all():
-            st.info("💬 لا توجد محادثات سابقة مع هذا الشخص.")
-            return
-
-        # تحقق من وجود العمود "to"
-        if "to" not in chat_data.columns:
-            st.warning("⚠️ العمود 'to' غير موجود في ورقة الدردشة.")
+        # تحقق من أن عمود "to" ليس فارغًا أو يحتوي على قيم غير صحيحة
+        if "to" not in chat_data.columns or chat_data["to"].isna().all():
+            st.warning("⚠️ لا توجد رسائل موجهة إلى هذا المستخدم.")
             return
 
         # حذف أي بيانات فارغة في الحقول المطلوبة
@@ -189,6 +184,7 @@ def show_chat_supervisor():
                 del st.session_state["chat_message"]
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+
 
 
 
