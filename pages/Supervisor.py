@@ -115,7 +115,6 @@ tabs = st.tabs([" تقرير إجمالي", "💬 المحادثات", "📋 ت�
 # ===== دالة عرض المحادثة =====
 
 
-
 def show_chat_supervisor():
     st.subheader("💬 الدردشة")
 
@@ -128,6 +127,7 @@ def show_chat_supervisor():
     if selected_display != "اختر الشخص":
         selected_user = selected_display.split(" (")[0]
 
+        # استرجاع البيانات من ورقة الدردشة
         chat_data = pd.DataFrame(chat_sheet.get_all_records())
 
         # تحقق من أن البيانات ليست فارغة
@@ -185,6 +185,12 @@ def show_chat_supervisor():
                 del st.session_state["chat_message"]
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+
+
+
+
+
+
 
 
 # ===== تبويب 1: تقرير إجمالي =====
