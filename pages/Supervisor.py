@@ -46,20 +46,6 @@ username = st.session_state.get("username")
 
 # ===== إعداد الصفحة =====
 st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
-
-# ===== ضبط اتجاه النص إلى اليمين =====
-st.markdown(
-    """
-    <style>
-    body, .stTextInput, .stTextArea, .stSelectbox, .stButton, .stMarkdown, .stDataFrame {
-        direction: rtl;
-        text-align: right;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 st.title(f"👋 أهلاً {username}")
 
 # ===== تحديد المستخدمين المتاحين للمحادثة =====
@@ -74,6 +60,55 @@ if permissions in ["supervisor", "sp"]:
     all_user_options += [(u, "مستخدم") for u in assigned_users["username"].tolist()]
 
 # إضافة سوبر مشرفين (إن وُجدوا) إلى القائمة للدردشة معهم
+if permissions == "supervisor":
+    my_sp = users_df[(users_df["username"] == username)]["Mentor"].values
+    if my_sp.size > 0:
+        all_user_options.insert(0, (my_sp[0], "مسؤول"))
+
+# ترتيب القائمة حسب النوع ثم الاسم
+all_user_options = sorted(all_user_options, key=lambda x: ({"مسؤول": 0, "مشرف": 1, "مستخدم": 2}[x[1]], x[0]))
+
+# ====== تبويبات الصفحة ======
+tabs = st.tabs(["💬 المحادثات", " تقرير إجمالي", "📋 تجميعي الكل", "📌 تجميعي بند", " تقرير فردي", "📈 رسوم بيانية"])
+
+# ===== دالة عرض المحادثة =====
+def show_chat_supervisor():
+    st.subheader("💬 الدردشة")
+    options_display = [f"{name} ({role})" for name, role in all_user_options]
+    selected_display = st.selectbox("اختر الشخص", options_display)
+    selected_user = selected_display.split(" (")[0]
+
+    chat_data = pd.DataFrame(chat_sheet.get_all_records())
+    chat_data = chat_data[chat_data["message"].notna()]
+    chat_data = chat_data[["timestamp", "from", "to", "message"]]
+
+    messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
+                         ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
+    messages = messages.sort_values(by="timestamp")
+
+    if messages.empty:
+        st.info("💬 لا توجد رسائل بعد.")
+    else:
+        for _, msg in messages.iterrows():
+            if msg["from"] == username:
+                st.markdown(f"<p style='color:#8B0000'><b>‍ أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<p style='color:#000080'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
+
+    new_msg = st.text_area("✏️ اكتب رسالتك", height=100, key="chat_message")
+    if st.button("📨 إرسال الرسالة"):
+        if new_msg.strip():
+            timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")  # بتوقيت السعودية
+            chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
+            st.session_state["chat_message"] = ""
+            st.success("✅ تم إرسال الرسالة")
+            st.rerun()
+        else:
+            st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+
+# ===== تبويب 1: المحادثات =====
+with tabs[0]:
+    show_chat_supervisor()
 # ===== تحميل بيانات الطلاب لعرض التقارير =====
 if permissions == "supervisor":
     filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
@@ -108,76 +143,8 @@ if not all_data:
 
 merged_df = pd.concat(all_data, ignore_index=True)
 
-# ====== تبويبات الصفحة ======
-tabs = st.tabs([" تقرير إجمالي", "💬 المحادثات", "📋 تجميعي الكل", "📌 تجميعي بند", " تقرير فردي", "📈 رسوم بيانية"])
-
-
-# ===== دالة عرض المحادثة =====
-def show_chat_supervisor():
-    st.subheader("💬 الدردشة")
-
-    if "selected_user_display" not in st.session_state:
-        st.session_state["selected_user_display"] = "اختر الشخص"
-
-    options_display = ["اختر الشخص"] + [f"{name} ({role})" for name, role in all_user_options]
-    selected_display = st.selectbox("اختر الشخص", options_display, key="selected_user_display")
-
-    if selected_display != "اختر الشخص":
-        selected_user = selected_display.split(" (")[0]
-
-        chat_data = pd.DataFrame(chat_sheet.get_all_records())
-        chat_data = chat_data[chat_data["message"].notna()]
-        chat_data = chat_data[["timestamp", "from", "to", "message", "read_by_receiver"]]
-
-        # تحديث حالة القراءة
-        unread_indexes = chat_data[
-            (chat_data["from"] == selected_user) &
-            (chat_data["to"] == username) &
-            (chat_data["read_by_receiver"].astype(str).str.strip() == "")
-        ].index.tolist()
-
-        for i in unread_indexes:
-            chat_sheet.update_cell(i + 2, 5, "✓")
-
-        # عرض الرسائل
-        messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
-                             ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
-        messages = messages.sort_values(by="timestamp")
-
-        if messages.empty:
-            st.info("💬 لا توجد رسائل بعد.")
-        else:
-            for _, msg in messages.iterrows():
-                if msg["from"] == username:
-                    st.markdown(f"<p style='color:#8B0000'><b>‍ أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<p style='color:#000080'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
-
-        new_msg = st.text_area("✏️ اكتب رسالتك", height=100, key="chat_message")
-        if st.button("📨 إرسال الرسالة"):
-            if new_msg.strip():
-                timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
-                chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
-                st.session_state["chat_message"] = ""
-                st.success("✅ تم إرسال الرسالة")
-                st.rerun()
-            else:
-                st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
-
-# ===== تبويب 1: تقرير إجمالي =====
-with tabs[0]:
-    # === تنبيه بالرسائل غير المقروءة ===
-    chat_data = pd.DataFrame(chat_sheet.get_all_records())
-    unread_msgs = chat_data[
-        (chat_data["to"] == username) &
-        (chat_data["message"].notna()) &
-        (chat_data["read_by_receiver"].astype(str).str.strip() == "")
-    ]
-    senders = unread_msgs["from"].unique().tolist()
-    if senders:
-        sender_list = "، ".join(senders)
-        st.markdown(f"<p style='color:red; font-weight:bold;'>يوجد لديك عدد دردشات لم تطلع عليها من ({sender_list})</p>", unsafe_allow_html=True)
-
+# ===== تبويب 2: تقرير إجمالي =====
+with tabs[1]:
     st.subheader(" مجموع درجات كل مستخدم")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_2"):
         st.cache_data.clear()
@@ -189,13 +156,9 @@ with tabs[0]:
     for user, row in grouped.iterrows():
         st.markdown(f"### <span style='color: #006400;'>{user} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
 
-# ===== تبويب 2: المحادثات =====
-with tabs[1]:
-    show_chat_supervisor()
-
 # ===== تبويب 3: تجميعي الكل =====
 with tabs[2]:
-    st.subheader("📋 تفاصيل الدرجات للجميع")
+    st.subheader("📋 مجموع الدرجات لكل مستخدم")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_3"):
         st.cache_data.clear()
         st.rerun()
@@ -203,7 +166,7 @@ with tabs[2]:
 
 # ===== تبويب 4: تجميعي بند =====
 with tabs[3]:
-    st.subheader("📌 مجموع بند لمستخدم")
+    st.subheader("📌 مجموع بند معين لكل المستخدمين")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_4"):
         st.cache_data.clear()
         st.rerun()
