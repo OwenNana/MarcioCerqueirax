@@ -281,7 +281,7 @@ with tabs[5]:
         st.rerun()
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
-    grouped["المجموع"] = grouped.sum(axis=1)
+    grouped["المجموع"] = grouped.sum(axis=1, numeric_only=True)
     fig = go.Figure(go.Pie(
         labels=grouped.index,
         values=grouped["المجموع"],
