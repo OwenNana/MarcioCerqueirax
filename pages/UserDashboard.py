@@ -45,18 +45,15 @@ admin_sheet = spreadsheet.worksheet("admin")
 admin_data = pd.DataFrame(admin_sheet.get_all_records())
 mentor_name = admin_data.loc[admin_data["username"] == username, "Mentor"].values[0]
 
-# ===== تحقق من أن الأعمدة غير فارغة =====
 if not columns:
     st.error("❌ لم يتم العثور على الأعمدة في ورقة البيانات.")
     st.stop()
 
-# ===== دالة زر التحديث =====
 def refresh_button(key):
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key=key):
         st.cache_data.clear()
         st.rerun()
 
-# ===== دالة جلب البيانات من جوجل شيت =====
 def load_data():
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
@@ -69,10 +66,9 @@ def show_chat():
     raw_data = chat_sheet.get_all_records()
 
     if not raw_data:
-        st.info("💬 لا توجد رسائل حالياً.")
-        return
-
-    chat_data = pd.DataFrame(raw_data)
+        chat_data = pd.DataFrame(columns=["timestamp", "from", "to", "message"])
+    else:
+        chat_data = pd.DataFrame(raw_data)
 
     if not {"from", "to", "message", "timestamp"}.issubset(chat_data.columns):
         st.warning("⚠️ لم يتم العثور على الأعمدة الصحيحة في ورقة الدردشة.")
@@ -82,9 +78,12 @@ def show_chat():
                          ((chat_data["from"] == mentor_name) & (chat_data["to"] == username))]
 
     messages = messages.sort_values(by="timestamp")
-    for _, msg in messages.iterrows():
-        sender = "🧑‍🏫 مشرفك" if msg["from"] == mentor_name else "🙋‍♂️ أنت"
-        st.markdown(f"**{sender}**: {msg['message']}")
+    if messages.empty:
+        st.info("💬 لا توجد رسائل حالياً.")
+    else:
+        for _, msg in messages.iterrows():
+            sender = "🧑‍🏫 مشرفك" if msg["from"] == mentor_name else "🙋‍♂️ أنت"
+            st.markdown(f"**{sender}**: {msg['message']}")
 
     new_msg = st.text_input("✏️ اكتب رسالتك لمشرفك هنا")
     if st.button("📨 إرسال الرسالة"):
@@ -96,7 +95,7 @@ def show_chat():
         else:
             st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
-# ===== تبويبات المستخدم =====
+# ===== التبويبات =====
 tabs = st.tabs(["💬 المحادثات", "📝 إدخال البيانات", "📊 تقارير المجموع"])
 
 # ===== التبويب الأول: المحادثة =====
@@ -104,10 +103,9 @@ with tabs[0]:
     st.title(f"👋 أهلاً {username} | 🧑‍🏫 مجموعتك: {mentor_name}")
     refresh_button("refresh_chat")
     show_chat()
-
 # ===== التبويب الثاني: إدخال البيانات =====
 with tabs[1]:
-    st.title(f"📝 تعبئة النموذج اليومي")
+    st.title("📝 تعبئة النموذج اليومي")
     refresh_button("refresh_tab1")
 
     with st.form("daily_form"):
