@@ -91,11 +91,15 @@ tabs = st.tabs(["💬 المحادثات", "👤 تقرير إجمالي", "📋
 
 with tabs[0]:
     show_chat_supervisor()
+# ===== إعداد الفترة الزمنية لجميع التبويبات (ما عدا المحادثات) =====
+default_start = datetime.today().replace(day=1)
+default_end = datetime.today()
+
 # ===== تبويب 2: تقرير إجمالي =====
 with tabs[1]:
     st.subheader("👤 مجموع درجات كل مستخدم")
-    start_date = st.date_input("من تاريخ", datetime.today(), key="start_tab1")
-    end_date = st.date_input("إلى تاريخ", datetime.today(), key="end_tab1")
+    start_date = st.date_input("من تاريخ", default_start, key="start_tab1")
+    end_date = st.date_input("إلى تاريخ", default_end, key="end_tab1")
     if start_date > end_date:
         st.error("⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
         st.stop()
@@ -103,66 +107,14 @@ with tabs[1]:
         st.cache_data.clear()
         st.rerun()
 
-    if permissions == "supervisor":
-        filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
-    elif permissions == "sp":
-        supervised_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
-        filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin(supervised_supervisors))]
-
-    if filtered_users.empty:
-        st.info("ℹ️ لا يوجد طلاب لعرض تقاريرهم.")
-        st.stop()
-
-    all_data = []
-    users_with_data = []
-    all_usernames = filtered_users["username"].tolist()
-
-    for _, user in filtered_users.iterrows():
-        user_name = user["username"]
-        sheet_name = user["sheet_name"]
-        try:
-            user_ws = spreadsheet.worksheet(sheet_name)
-            user_records = user_ws.get_all_records()
-            df = pd.DataFrame(user_records)
-            if "التاريخ" in df.columns:
-                df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
-                df = df[(df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))]
-                if not df.empty:
-                    df.insert(0, "username", user_name)
-                    all_data.append(df)
-                    users_with_data.append(user_name)
-                else:
-                    empty_df = pd.DataFrame(columns=df.columns)
-                    empty_df["username"] = [user_name]
-                    empty_df["التاريخ"] = pd.NaT
-                    for col in empty_df.columns:
-                        if col not in ["username", "التاريخ"]:
-                            empty_df[col] = 0
-                    all_data.append(empty_df)
-                    users_with_data.append(user_name)
-        except Exception as e:
-            st.warning(f"⚠️ خطأ في تحميل بيانات {user_name}: {e}")
-
-    if not all_data:
-        st.info("ℹ️ لا توجد بيانات في الفترة المحددة.")
-        st.stop()
-
-    merged_df = pd.concat(all_data, ignore_index=True)
-    scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
-    grouped = merged_df.groupby("username")[scores.columns].sum()
-    grouped["المجموع"] = grouped.sum(axis=1)
-    cols = grouped.columns.tolist()
-    if "المجموع" in cols:
-        cols.insert(0, cols.pop(cols.index("المجموع")))
-        grouped = grouped[cols]
-    grouped = grouped.sort_values(by="المجموع", ascending=True)
-
-    for index, row in grouped.iterrows():
-        st.markdown(f"### <span style='color: #006400;'>{index} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
-
 # ===== تبويب 3: تجميعي الكل =====
 with tabs[2]:
     st.subheader("📋 مجموع الدرجات لكل مستخدم")
+    start_date = st.date_input("من تاريخ", default_start, key="start_tab2")
+    end_date = st.date_input("إلى تاريخ", default_end, key="end_tab2")
+    if start_date > end_date:
+        st.error("⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
+        st.stop()
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab2"):
         st.cache_data.clear()
         st.rerun()
@@ -171,9 +123,15 @@ with tabs[2]:
 # ===== تبويب 4: تجميعي بند =====
 with tabs[3]:
     st.subheader("📌 مجموع بند معين لكل المستخدمين")
+    start_date = st.date_input("من تاريخ", default_start, key="start_tab3")
+    end_date = st.date_input("إلى تاريخ", default_end, key="end_tab3")
+    if start_date > end_date:
+        st.error("⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
+        st.stop()
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab3"):
         st.cache_data.clear()
         st.rerun()
+
     all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username"]]
     selected_activity = st.selectbox("اختر البند", all_columns)
     activity_sum = merged_df.groupby("username")[selected_activity].sum().sort_values(ascending=True)
@@ -187,22 +145,41 @@ with tabs[3]:
 # ===== تبويب 5: تقرير فردي =====
 with tabs[4]:
     st.subheader("👤 تقرير تفصيلي لمستخدم")
+    start_date = st.date_input("من تاريخ", default_start, key="start_tab4")
+    end_date = st.date_input("إلى تاريخ", default_end, key="end_tab4")
+    if start_date > end_date:
+        st.error("⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
+        st.stop()
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab4"):
         st.cache_data.clear()
         st.rerun()
+
     selected_user = st.selectbox("اختر المستخدم", merged_df["username"].unique())
-    user_df = merged_df[merged_df["username"] == selected_user].sort_values("التاريخ")
+    user_df = merged_df[merged_df["username"] == selected_user]
+    user_df = user_df[(user_df["التاريخ"] >= pd.to_datetime(start_date)) & (user_df["التاريخ"] <= pd.to_datetime(end_date))]
+    user_df = user_df.sort_values("التاريخ")
     st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
 
 # ===== تبويب 6: رسوم بيانية =====
 with tabs[5]:
     st.subheader("📈 رسوم بيانية")
+    start_date = st.date_input("من تاريخ", default_start, key="start_tab5")
+    end_date = st.date_input("إلى تاريخ", default_end, key="end_tab5")
+    if start_date > end_date:
+        st.error("⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
+        st.stop()
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab5"):
         st.cache_data.clear()
         st.rerun()
+
+    filtered_df = merged_df[(merged_df["التاريخ"] >= pd.to_datetime(start_date)) & (merged_df["التاريخ"] <= pd.to_datetime(end_date))]
+    scores = filtered_df.drop(columns=["التاريخ", "username"], errors="ignore")
+    grouped_filtered = filtered_df.groupby("username")[scores.columns].sum()
+    grouped_filtered["المجموع"] = grouped_filtered.sum(axis=1)
+
     pie_fig = go.Figure(go.Pie(
-        labels=grouped.index,
-        values=grouped["المجموع"],
+        labels=grouped_filtered.index,
+        values=grouped_filtered["المجموع"],
         hole=0.4,
         title="مجموع الدرجات الكلية"
     ))
