@@ -26,15 +26,21 @@ if "authenticated" not in st.session_state:
 # التحقق من تسجيل الدخول
 if not st.session_state["authenticated"]:
     with st.form("login_form"):
-        username = st.text_input("اسم المستخدم", key="username_input")
-        password = st.text_input("كلمة المرور", type="password", key="password_input")
+        # ===== الحقول الوهمية المخفية لتشتيت Safari =====
+        st.markdown("""
+            <input type="text" name="dummy-user" style="display:none">
+            <input type="password" name="dummy-pass" style="display:none">
+        """, unsafe_allow_html=True)
+
+        username = st.text_input("اسم المستخدم")
+        password = st.text_input("كلمة المرور", type="password")
         submitted = st.form_submit_button("دخول")
 
         if submitted:
             # جلب البيانات من شيت الأدمن
             admin_sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY").worksheet("admin")
             users_df = pd.DataFrame(admin_sheet.get_all_records())
-            
+
             # التحقق من وجود المستخدم وكلمة المرور
             matched = users_df[
                 (users_df["username"] == username) &
@@ -59,38 +65,6 @@ if not st.session_state["authenticated"]:
                     st.error("⚠️ صلاحية غير معروفة.")
             else:
                 st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
-
-    # ===== سكربت لمنع اقتراح كلمة المرور على iPhone =====
-    st.markdown("""
-        <script>
-        setTimeout(function() {
-            const frames = window.parent.document.querySelectorAll('iframe');
-
-            frames.forEach(frame => {
-                try {
-                    const doc = frame.contentDocument || frame.contentWindow.document;
-                    const userInput = doc.querySelector('input[type="text"]');
-                    const passInput = doc.querySelector('input[type="password"]');
-
-                    if (userInput) {
-                        userInput.setAttribute("autocomplete", "off");
-                        userInput.setAttribute("name", "username-fake");
-                        userInput.setAttribute("id", "username-fake");
-                    }
-
-                    if (passInput) {
-                        passInput.setAttribute("autocomplete", "new-password");
-                        passInput.setAttribute("name", "password-fake");
-                        passInput.setAttribute("id", "password-fake");
-                    }
-                } catch (e) {
-                    // تجاهل الأخطاء الناتجة من iframe بسبب cross-origin
-                }
-            });
-        }, 1000);
-        </script>
-    """, unsafe_allow_html=True)
-
 else:
     # إعادة التوجيه حسب الصلاحية
     permission = st.session_state.get("permissions")
