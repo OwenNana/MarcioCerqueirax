@@ -69,14 +69,14 @@ supervisors_df = users_df[users_df["role"] == "supervisor"]
 # ===== إنشاء مستخدم جديد =====
 st.subheader("➕ إنشاء حساب جديد")
 with st.form("create_user_form"):
-    username = st.text_input("Username")
-    full_name = st.text_input("الاسم الكامل")  # حقل جديد لإدخال الاسم الكامل
+    full_name = st.text_input("الاسم الكامل")  # رفع الاسم الكامل أولًا
+    username = st.text_input("Username")  # ثم اسم المستخدم
     password = st.text_input("Password")
     role = "user"  # تم تثبيت الصلاحية على user فقط
 
-    # اختيار المشرف من قائمة المشرفين فقط
-    mentor_options = supervisors_df["username"].tolist()  # أسماء المشرفين فقط
-    mentor = st.selectbox("اختار المشرف", mentor_options)  # اختيار المشرف
+    # اختيار المشرف من قائمة المشرفين فقط (عرض الاسم الكامل)
+    mentor_options = supervisors_df["full_name"].tolist()  # عرض الاسم الكامل للمشرفين
+    mentor = st.selectbox("اختار المشرف", mentor_options)  # اختيار المشرف حسب الاسم الكامل
 
     create = st.form_submit_button("Create")
 
