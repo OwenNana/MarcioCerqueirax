@@ -193,6 +193,8 @@ def show_chat_supervisor():
 
 # ===== تبويب 1: تقرير إجمالي =====
 with tabs[0]:
+    # === # ===== تبويب 1: تقرير إجمالي =====
+with tabs[0]:
     # === تنبيه بالرسائل غير المقروءة ===
     chat_data = pd.DataFrame(chat_sheet.get_all_records())
     
@@ -215,24 +217,20 @@ with tabs[0]:
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_2"):
         st.cache_data.clear()
         st.rerun()
+
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
     grouped = grouped.sort_values(by="المجموع", ascending=True)
+
+    # تصحيح المحاذاة في هذه الحلقة
     for user, row in grouped.iterrows():
-    full_name = users_df.loc[users_df["username"] == user, "full_name"].values[0]  # جلب الاسم الكامل
-    st.markdown(f"### <span style='color: #006400;'>{full_name} : {row['المجموع']} درجة</span>", 
-unsafe_allow_html=True)
+        full_name = users_df.loc[users_df["username"] == user, "full_name"].values[0]  # جلب الاسم الكامل
+        st.markdown(f"### <span style='color: #006400;'>{full_name} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
 
 # ===== تبويب 2: المحادثات =====
 with tabs[1]:
     show_chat_supervisor()
-
-
-
-
-
-
 
 # ===== تبويب 3: تجميعي الكل =====
 with tabs[2]:
@@ -289,3 +287,4 @@ with tabs[5]:
         title="مجموع الدرجات"
     ))
     st.plotly_chart(fig, use_container_width=True)
+
