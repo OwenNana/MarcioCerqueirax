@@ -237,6 +237,8 @@ with tabs[1]:
 # ===== تبويب 3: تجميعي الكل =====
 with tabs[2]:
     st.subheader("📋 تفاصيل الدرجات للجميع")
+    
+    # زر جلب البيانات
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_3"):
         st.cache_data.clear()
         st.rerun()
@@ -244,7 +246,7 @@ with tabs[2]:
     # نضيف "الاسم الكامل" إلى grouped
     grouped["full_name"] = grouped.index.map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
 
-# الآن نعرض البيانات مع "الاسم الكامل" في `grouped`
+    # عرض البيانات مع "الاسم الكامل" في `grouped`
     st.dataframe(grouped[['full_name', 'المجموع']], use_container_width=True)
 
 # ===== تبويب 4: تجميعي بند =====
