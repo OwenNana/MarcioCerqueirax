@@ -25,10 +25,10 @@ if "username" not in st.session_state or "sheet_url" not in st.session_state:
 
 if st.session_state["permissions"] != "user":
     if st.session_state["permissions"] == "admin":
-        st.warning("👤 تم تسجيل الدخول كأدمن، سيتم تحويلك للوحة التحكم...")
+        st.warning(" تم تسجيل الدخول كأدمن، سيتم تحويلك للوحة التحكم...")
         st.switch_page("pages/AdminDashboard.py")
     elif st.session_state["permissions"] in ["supervisor", "sp"]:
-        st.warning("👤 تم تسجيل الدخول كمشرف، سيتم تحويلك للتقارير...")
+        st.warning(" تم تسجيل الدخول كمشرف، سيتم تحويلك للتقارير...")
         st.switch_page("pages/Supervisor.py")
     else:
         st.error("⚠️ صلاحية غير معروفة.")
@@ -82,7 +82,7 @@ def show_chat():
     if sp_name:
         options.append(sp_name)
 
-    selected_mentor = st.selectbox("📨 اختر الشخص الذي ترغب بمراسلته", options, index=0, format_func=lambda x: f"🧑‍🏫 {x}")
+    selected_mentor = st.selectbox("📨 اختر الشخص الذي ترغب بمراسلته", options, index=0, format_func=lambda x: f" {x}")
 
     chat_sheet = spreadsheet.worksheet("chat")
     raw_data = chat_sheet.get_all_records()
@@ -101,9 +101,9 @@ def show_chat():
     else:
         for _, msg in messages.iterrows():
             if msg["from"] == username:
-                st.markdown(f"<p style='color:#000080'><b>🙋‍♂️ أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='color:#000080'><b> أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
             else:
-                st.markdown(f"<p style='color:#8B0000'><b>🧑‍🏫 {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='color:#8B0000'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
     new_msg = st.text_area("✏️ اكتب رسالتك هنا", height=100)
     if st.button("📨 إرسال الرسالة"):
@@ -120,7 +120,7 @@ tabs = st.tabs(["💬 المحادثات", "📝 إدخال البيانات", "
 
 # ===== التبويب الأول: المحادثة =====
 with tabs[0]:
-    st.title(f"👋 أهلاً {username} | 🧑‍🏫 مجموعتك: {mentor_name}")
+    st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
     refresh_button("refresh_chat")
     show_chat()
 # ===== التبويب الثاني: إدخال البيانات =====
