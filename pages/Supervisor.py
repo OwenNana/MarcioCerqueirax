@@ -259,34 +259,30 @@ with tabs[1]:
 with tabs[2]:
     st.subheader("📋 تفاصيل الدرجات للجميع")
 
-    # زر جلب المعلومات من قاعدة البيانات
+    # **واجهة اختيار الفترة الزمنية**
+    st.markdown("### تحديد الفترة الزمنية للتقرير")
+    col_date1, col_date2 = st.columns(2)
+    with col_date1:
+        start_date = st.date_input("من تاريخ", value=datetime.today().date() - timedelta(days=7), key="start_date_tab2")
+    with col_date2:
+        end_date = st.date_input("إلى تاريخ", value=datetime.today().date(), key="end_date_tab2")
+
+    df_filtered = merged_df.copy()
+    if "التاريخ" in df_filtered.columns:
+        df_filtered["التاريخ"] = pd.to_datetime(df_filtered["التاريخ"], errors="coerce")
+        df_filtered = df_filtered[
+            (df_filtered["التاريخ"] >= pd.to_datetime(start_date)) &
+            (df_filtered["التاريخ"] <= pd.to_datetime(end_date))
+        ]
+
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_3"):
         st.cache_data.clear()
         st.rerun()
 
-    # ===== الاتصال بـ Google Sheets =====
-    SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
-    creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
-
-    # محاولة الاتصال بقاعدة البيانات
-    try:
-        client = gspread.authorize(creds)
-        spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
-        admin_sheet = spreadsheet.worksheet("admin")
-        chat_sheet = spreadsheet.worksheet("chat")
-        users_df = pd.DataFrame(admin_sheet.get_all_records())  # جلب البيانات من ورقة الأدمن
-
-    except Exception as e:
-        st.error(f"❌ حدث خطأ أثناء الاتصال بقاعدة البيانات. حاول مرة أخرى. التفاصيل: {e}")
-        st.markdown("""<script>
-            setTimeout(function() {
-                window.location.href = "/home";
-            }, 1000);
-        </script>""", unsafe_allow_html=True)
-        st.stop()
-
-    # الآن نعرض بيانات الجدول (grouped) مع عمود "full_name"
+    scores = df_filtered.drop(columns=["التاريخ", "username"], errors="ignore")
+    grouped = df_filtered.groupby("username")[scores.columns].sum()
+    grouped["المجموع"] = grouped.sum(axis=1, numeric_only=True)
+    grouped = grouped.sort_values(by="المجموع", ascending=True)
     grouped["full_name"] = grouped.index.map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
     st.dataframe(grouped[['full_name', 'المجموع']], use_container_width=True)
 
@@ -294,72 +290,109 @@ with tabs[2]:
 with tabs[3]:
     st.subheader("📌 مجموع بند لمستخدم")
     
-    # زر جلب المعلومات من قاعدة البيانات
+    # **واجهة اختيار الفترة الزمنية**
+    st.markdown("### تحديد الفترة الزمنية للتقرير")
+    col_date1, col_date2 = st.columns(2)
+    with col_date1:
+        start_date = st.date_input("من تاريخ", value=datetime.today().date() - timedelta(days=7), key="start_date_tab3")
+    with col_date2:
+        end_date = st.date_input("إلى تاريخ", value=datetime.today().date(), key="end_date_tab3")
+    
+    df_filtered = merged_df.copy()
+    if "التاريخ" in df_filtered.columns:
+        df_filtered["التاريخ"] = pd.to_datetime(df_filtered["التاريخ"], errors="coerce")
+        df_filtered = df_filtered[
+            (df_filtered["التاريخ"] >= pd.to_datetime(start_date)) &
+            (df_filtered["التاريخ"] <= pd.to_datetime(end_date))
+        ]
+    
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_4"):
         st.cache_data.clear()
         st.rerun()
-
-    # إضافة "full_name" إلى merged_df بناءً على "username"
-    merged_df["full_name"] = merged_df["username"].map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
-
-    # عرض البند الذي سيتم حسابه
-    all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username", "full_name"]]
+    
+    all_columns = [col for col in df_filtered.columns if col not in ["التاريخ", "username", "full_name"]]
     selected_activity = st.selectbox("اختر البند", all_columns)
-
-    # حساب مجموع النشاط
-    activity_sum = merged_df.groupby("full_name")[selected_activity].sum().sort_values(ascending=True)
-
-    # إضافة المستخدمين الذين ليس لديهم بيانات
-    missing_users = set(all_usernames) - set(users_with_data)
+    activity_sum = df_filtered.groupby("full_name")[selected_activity].sum().sort_values(ascending=True)
+    
+    # التأكد من ظهور المستخدمين الذين لم يوجد لهم بيانات في الفترة المختارة
+    missing_users = set(all_usernames) - set(df_filtered["username"].unique())
     for user in missing_users:
-        activity_sum[user] = 0
+        full_name = users_df.loc[users_df["username"] == user, "full_name"].values[0]
+        activity_sum[full_name] = 0
 
-    # عرض البيانات مع "الاسم الكامل" في activity_sum
     st.dataframe(activity_sum, use_container_width=True)
 
 # ===== تبويب 5: تقرير فردي =====
 with tabs[4]:
     st.subheader("تقرير تفصيلي لمستخدم")
     
-    # زر جلب المعلومات من قاعدة البيانات
+    # **واجهة اختيار الفترة الزمنية**
+    st.markdown("### تحديد الفترة الزمنية للتقرير")
+    col_date1, col_date2 = st.columns(2)
+    with col_date1:
+        start_date = st.date_input("من تاريخ", value=datetime.today().date() - timedelta(days=7), key="start_date_tab4")
+    with col_date2:
+        end_date = st.date_input("إلى تاريخ", value=datetime.today().date(), key="end_date_tab4")
+    
+    df_filtered = merged_df.copy()
+    if "التاريخ" in df_filtered.columns:
+        df_filtered["التاريخ"] = pd.to_datetime(df_filtered["التاريخ"], errors="coerce")
+        df_filtered = df_filtered[
+            (df_filtered["التاريخ"] >= pd.to_datetime(start_date)) &
+            (df_filtered["التاريخ"] <= pd.to_datetime(end_date))
+        ]
+    
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_5"):
         st.cache_data.clear()
         st.rerun()
-
-    # إضافة عمود "full_name" إلى merged_df بناءً على "username"
-    merged_df["full_name"] = merged_df["username"].map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
-
-    # استخدام "full_name" في selectbox بدلاً من "username"
-    selected_user = st.selectbox("اختر المستخدم", merged_df["full_name"].unique())
-
-    # عرض بيانات المستخدم بناءً على "full_name"
-    user_df = merged_df[merged_df["full_name"] == selected_user].sort_values("التاريخ")
-
-    # إزالة الفهرس وإظهار البيانات
+    
+    df_filtered["full_name"] = df_filtered["username"].map(
+        lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0]
+    )
+    selected_user = st.selectbox("اختر المستخدم", df_filtered["full_name"].unique())
+    user_df = df_filtered[df_filtered["full_name"] == selected_user].sort_values("التاريخ")
     st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
-
 # ===== تبويب 6: رسوم بيانية =====
 with tabs[5]:
     st.subheader("📈 رسوم بيانية")
+    
+    # واجهة اختيار الفترة الزمنية
+    st.markdown("### تحديد الفترة الزمنية للتقرير")
+    col_date1, col_date2 = st.columns(2)
+    with col_date1:
+        start_date = st.date_input("من تاريخ", value=datetime.today().date() - timedelta(days=7), key="start_date_tab6")
+    with col_date2:
+        end_date = st.date_input("إلى تاريخ", value=datetime.today().date(), key="end_date_tab6")
+    
+    # تصفية البيانات بناءً على الفترة الزمنية المختارة
+    df_filtered = merged_df.copy()
+    if "التاريخ" in df_filtered.columns:
+        df_filtered["التاريخ"] = pd.to_datetime(df_filtered["التاريخ"], errors="coerce")
+        df_filtered = df_filtered[
+            (df_filtered["التاريخ"] >= pd.to_datetime(start_date)) &
+            (df_filtered["التاريخ"] <= pd.to_datetime(end_date))
+        ]
     
     # زر جلب المعلومات من قاعدة البيانات
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_6"):
         st.cache_data.clear()
         st.rerun()
-
+    
     # حذف الأعمدة غير المرغوب فيها
-    scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
+    scores = df_filtered.drop(columns=["التاريخ", "username"], errors="ignore")
 
-    # إضافة "full_name" إلى merged_df
-    merged_df["full_name"] = merged_df["username"].map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
+    # إضافة "full_name" إلى df_filtered
+    df_filtered["full_name"] = df_filtered["username"].map(
+        lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0]
+    )
 
     # تجميع البيانات باستخدام "full_name" بدلاً من "username"
-    grouped = merged_df.groupby("full_name")[scores.columns].sum()
+    grouped = df_filtered.groupby("full_name")[scores.columns].sum()
 
-    # حساب المجموع
+    # حساب المجموع لكل مستخدم
     grouped["المجموع"] = grouped.sum(axis=1, numeric_only=True)
 
-    # إنشاء الرسم البياني باستخدام "full_name"
+    # إنشاء الرسم البياني باستخدام Pie Chart من Plotly
     fig = go.Figure(go.Pie(
         labels=grouped.index,
         values=grouped["المجموع"],
@@ -367,5 +400,5 @@ with tabs[5]:
         title="مجموع الدرجات"
     ))
 
-    # عرض الرسم البياني
+    # عرض الرسم البياني مع تكييف العرض ليناسب الحاوية
     st.plotly_chart(fig, use_container_width=True)
