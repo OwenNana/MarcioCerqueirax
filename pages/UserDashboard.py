@@ -160,11 +160,13 @@ with tabs[0]:
         if senders:
             sender_list = "، ".join(senders)
             st.markdown(f"""
-<div style="direction: rtl; text-align: right;">
-  <span style='color:red; font-weight:bold; font-size:16px;'>
-    📬 يوجد لديك رسائل لم تطلع عليها من: ({sender_list})
-  </span>
-</div>
+<table style="width:100%;">
+<tr>
+<td style="direction: rtl; text-align: right; color: red; font-weight: bold; font-size: 16px;">
+📬 يوجد لديك رسائل لم تطلع عليها من: ({sender_list})
+</td>
+</tr>
+</table>
 """, unsafe_allow_html=True)
 
 
