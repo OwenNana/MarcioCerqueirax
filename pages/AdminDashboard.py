@@ -41,9 +41,12 @@ st.subheader("📋 قائمة المستخدمين")
 mentor_name = st.session_state.get("username")  # اسم المشرف من الجلسة
 filtered_users = users_df[users_df["Mentor"] == mentor_name]
 
-# عرض المستخدمين الذين يتبعون نفس المشرف
-filtered_df = filtered_users[["username", "role", "Mentor"]]
-st.dataframe(filtered_df, use_container_width=True)
+if filtered_users.empty:
+    st.warning(f"⚠️ لا يوجد مستخدمين يتبعون المشرف {mentor_name} حالياً.")
+else:
+    # عرض المستخدمين الذين يتبعون نفس المشرف
+    filtered_df = filtered_users[["username", "role", "Mentor"]]
+    st.dataframe(filtered_df, use_container_width=True)
 
 # ===== الأعمدة الافتراضية لكل مستخدم جديد =====
 def get_default_columns():
