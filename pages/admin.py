@@ -6,7 +6,6 @@ from google.oauth2.service_account import Credentials
 
 # ===== إعداد صفحة Streamlit =====
 st.set_page_config(layout="wide", page_title="⚙️ إعدادات المستخدم")
-st.title("⚙️ إعدادات حسابك")
 
 # ===== الاتصال بـ Google Sheets =====
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -26,6 +25,9 @@ user_row = df[df["username"] == username]
 if user_row.empty:
     st.error("⚠️ لم يتم العثور على المستخدم.")
     st.stop()
+
+# ===== عرض العنوان الجديد =====
+st.title(f"👋 أهلاً {username}")
 
 row_index = user_row.index[0] + 2  # +2 لأن get_all_records يبدأ من الصف 2
 
