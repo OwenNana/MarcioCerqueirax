@@ -29,7 +29,6 @@ client = gspread.authorize(creds)
 # ===== إعداد الصفحة =====
 st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
 
-
 st.markdown("""
     <style>
     html, body, [class*="css"]  {
@@ -54,13 +53,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("📊 تقارير المشرف")
-if st.button("🔄 جلب المعلومات من قاعدة البيانات"):
-    st.rerun()
-
-# ===== تحقق من صلاحية الدخول =====
-if "permissions" not in st.session_state or st.session_state["permissions"] != "supervisor":
-    st.error("🚫 هذه الصفحة مخصصة للمشرف فقط.")
-    st.stop()
 
 # ===== تحديد الفترة الزمنية =====
 st.sidebar.header("📅 تحديد الفترة")
@@ -69,6 +61,15 @@ end_date = st.sidebar.date_input("إلى تاريخ", datetime.today())
 
 if start_date > end_date:
     st.error("⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
+    st.stop()
+
+# ===== جلب المعلومات من قاعدة البيانات =====
+if st.button("🔄 جلب المعلومات من قاعدة البيانات"):
+    st.rerun()
+
+# ===== تحقق من صلاحية الدخول =====
+if "permissions" not in st.session_state or st.session_state["permissions"] != "supervisor":
+    st.error("🚫 هذه الصفحة مخصصة للمشرف فقط.")
     st.stop()
 
 # ===== قراءة ورقة admin وتجاهل أول 5 صفوف =====
