@@ -71,6 +71,7 @@ all_user_options = sorted(all_user_options, key=lambda x: ({"مسؤول": 0, "م
 # ====== تبويبات الصفحة ======
 tabs = st.tabs([" تقرير إجمالي", "💬 المحادثات", "📋 تجميعي الكل", "📌 تجميعي بند", " تقرير فردي", "📈 رسوم بيانية"])
 
+
 # ===== دالة عرض المحادثة =====
 def show_chat_supervisor():
     st.subheader("💬 الدردشة")
