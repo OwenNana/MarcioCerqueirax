@@ -4,6 +4,8 @@ import gspread
 import json
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
+from hijri_converter import Gregorian
+
 
 # ===== إعادة التوجيه إلى صفحة تسجيل الدخول إذا لم يتم تسجيل الدخول =====
 if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
@@ -123,6 +125,9 @@ with tabs[0]:
     st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
     refresh_button("refresh_chat")
     show_chat()
+
+    
+
 # ===== التبويب الثاني: إدخال البيانات =====
 with tabs[1]:
     st.title("📝 تعبئة النموذج اليومي")
@@ -131,10 +136,28 @@ with tabs[1]:
     with st.form("daily_form"):
         today = datetime.today().date()
         allowed_dates = [today - timedelta(days=i) for i in range(7)]
-        date = st.date_input("📅 التاريخ", today)
+        date = st.date_input("📅 التاريخ (ميلادي)", today)
 
         if date not in allowed_dates:
             st.warning("⚠️ يمكن تعبئة البيانات خلال أسبوع سابق من اليوم فقط.")
+
+        # تحويل إلى هجري
+        hijri = Gregorian(date.year, date.month, date.day).to_hijri()
+
+        # أسماء أيام الأسبوع بالعربية
+        arabic_weekdays = {
+            "Saturday": "السبت",
+            "Sunday": "الأحد",
+            "Monday": "الاثنين",
+            "Tuesday": "الثلاثاء",
+            "Wednesday": "الأربعاء",
+            "Thursday": "الخميس",
+            "Friday": "الجمعة"
+        }
+        weekday_name = arabic_weekdays[date.strftime("%A")]
+
+        st.markdown(f"### 🗓️ اليوم: {weekday_name}")
+        st.markdown(f"### 📆 التاريخ الهجري: {hijri.day}-{hijri.month}-{hijri.year} هـ")
 
         values = [date.strftime("%Y-%m-%d")]
 
@@ -154,7 +177,12 @@ with tabs[1]:
             rating = st.radio(col, options_1, index=0, key=col)
             values.append(str(ratings_1[rating]))
 
-        # الاختيارات الثانية
+    
+    
+    
+    
+    
+    # الاختيارات الثانية
         st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الثانية</h3>", unsafe_allow_html=True)
         options_2 = ["نعم", "ليس كاملاً", "لا"]
         ratings_2 = {
