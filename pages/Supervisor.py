@@ -107,7 +107,17 @@ def show_chat_supervisor():
 
     chat_data = pd.DataFrame(chat_sheet.get_all_records())
     chat_data = chat_data[chat_data["message"].notna()]
-    chat_data = chat_data[["timestamp", "from", "to", "message"]]
+    chat_data = chat_data[["timestamp", "from", "to", "message", "read_by_receiver"]]
+
+    # تحديث حالة القراءة للرسائل من هذا الشخص
+    unread_indexes = chat_data[
+        (chat_data["from"] == selected_user) &
+        (chat_data["to"] == username) &
+        (chat_data["read_by_receiver"].astype(str).str.strip() == "")
+    ].index.tolist()
+
+    for i in unread_indexes:
+        chat_sheet.update_cell(i + 2, 5, "✓")  # العمود الخامس هو read_by_receiver
 
     messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
                          ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
@@ -125,7 +135,7 @@ def show_chat_supervisor():
     new_msg = st.text_area("✏️ اكتب رسالتك", height=100, key="chat_message")
     if st.button("📨 إرسال الرسالة"):
         if new_msg.strip():
-            timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")  # بتوقيت السعودية
+            timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
             chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
             st.session_state["chat_message"] = ""
             st.success("✅ تم إرسال الرسالة")
