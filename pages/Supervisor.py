@@ -114,8 +114,19 @@ tabs = st.tabs([" تقرير إجمالي", "💬 المحادثات", "📋 ت�
 
 # ===== دالة عرض المحادثة =====
 
+
+
+
+
+
+
 def show_chat_supervisor():
     st.subheader("💬 الدردشة")
+
+    # زر تفريغ الدردشة
+    if st.button("🗑️ تفريغ الدردشة", key="clear_chat"):
+        st.session_state["chat_message"] = ""
+        st.rerun()
 
     if "selected_user_display" not in st.session_state:
         st.session_state["selected_user_display"] = "اختر الشخص"
@@ -128,20 +139,16 @@ def show_chat_supervisor():
 
         chat_data = pd.DataFrame(chat_sheet.get_all_records())
 
-        # تحقق من أن البيانات ليست فارغة
         if chat_data.empty:
             st.info("💬 لا توجد رسائل بعد.")
         else:
-            # تحقق من وجود الأعمدة المطلوبة
             required_columns = {"timestamp", "from", "to", "message", "read_by_receiver"}
             if not required_columns.issubset(chat_data.columns):
                 st.warning(f"⚠️ الأعمدة المطلوبة غير موجودة في ورقة الدردشة. الأعمدة الموجودة: {chat_data.columns}")
                 return
 
-            # حذف أي بيانات فارغة في الحقول المطلوبة
             chat_data = chat_data.dropna(subset=["timestamp", "from", "to", "message", "read_by_receiver"])
 
-            # تحديث حالة القراءة
             unread_indexes = chat_data[
                 (chat_data["from"] == selected_user) &
                 (chat_data["to"] == username) &
@@ -149,9 +156,8 @@ def show_chat_supervisor():
             ].index.tolist()
 
             for i in unread_indexes:
-                chat_sheet.update_cell(i + 2, 5, "✓")  # الصف +2 لأن الصف الأول للعناوين
+                chat_sheet.update_cell(i + 2, 5, "✓")
 
-            # عرض الرسائل
             messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
                                  ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
             messages = messages.sort_values(by="timestamp")
@@ -165,24 +171,16 @@ def show_chat_supervisor():
                     else:
                         st.markdown(f"<p style='color:#000080'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
-        # حقل النص لإدخال الرسالة
         new_msg = st.text_area("✏️ اكتب رسالتك", height=100, key="chat_message")
         if st.button("📨 إرسال الرسالة"):
-            if new_msg.strip():  # تأكد من أن الرسالة ليست فارغة
+            if new_msg.strip():
                 timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
                 chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
-        
-                # رسالة تم إرسالها
                 st.success("✅ تم إرسال الرسالة")
-
-                # إعادة تحميل الصفحة بعد الإرسال
+                st.session_state.chat_message = ""
                 st.rerun()
-
-                # مسح النص في حقل النص
-                del st.session_state["chat_message"]
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
-
 
 
 
