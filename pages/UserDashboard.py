@@ -144,6 +144,8 @@ def show_chat():
 tabs = st.tabs(["📝 إدخال البيانات", "💬 المحادثات", "📊 تقارير المجموع"])
 
 # ===== التبويب الأول: إدخال البيانات =====
+
+
 with tabs[0]:
 
     st.markdown(
@@ -158,12 +160,17 @@ with tabs[0]:
         unsafe_allow_html=True
     )
 
-    st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
+    # تصغير "أهلاً ... مجموعتك"
+    st.markdown(f"<h3 style='color: #0000FF; font-weight: bold; font-size: 24px;'>👋 أهلاً {username} | مجموعتك / {mentor_name}</h3>", unsafe_allow_html=True)
 
-    st.title("📝 المحاسبة الذاتية")
+    # تصغير "المحاسبة الذاتية"
+    st.markdown("<h4 style='color: #0000FF; font-weight: bold; font-size: 20px;'>📝 المحاسبة الذاتية</h4>", unsafe_allow_html=True)
+
     refresh_button("refresh_tab1")
 
-    # ===== تنبيه بالرسائل غير المقروءة =====
+
+
+# ===== تنبيه بالرسائل غير المقروءة =====
     chat_sheet = spreadsheet.worksheet("chat")
     chat_data = pd.DataFrame(chat_sheet.get_all_records())
 
