@@ -77,15 +77,19 @@ admin_sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
 admin_data = admin_sheet.get_all_records()
 users = admin_data[5:]  # الصفوف من السادس فما فوق
 
-# ===== تبويبات التقارير =====
-tabs = st.tabs(["👤 تقرير إجمالي للمستخدمين", "📋 تجميعي الكل", "📌 تجميعي بند", "👤 تقرير فردي", "📈 رسوم بيانية"])
+# ===== تصفية المستخدمين حسب المشرف =====
+mentor_name = st.session_state.get("username")  # اسم المشرف من الجلسة
+filtered_users = [user for user in users if user.get("Mentor") == mentor_name]
 
-# ====== تجميع البيانات من جميع أوراق المستخدمين ======
+# ===== تبويبات التقارير =====
+tabs = st.tabs(["📋 تجميعي الكل", "📌 تجميعي بند", "👤 تقرير فردي", "📈 رسوم بيانية"])
+
+# ===== تجميع البيانات من المستخدمين الذين يتبعون المشرف ======
 all_data = []
 users_with_data = []  # لتتبع المستخدمين الذين لديهم سجلات
-all_users = [user.get("username") for user in users]  # قائمة بجميع المستخدمين
+all_users = [user.get("username") for user in filtered_users]  # قائمة بجميع المستخدمين الذين يتبعون المشرف
 
-for user in users:
+for user in filtered_users:
     username = user.get("username")
     sheet_name = user.get("sheet_name")
     try:
@@ -118,25 +122,10 @@ if not all_data:
 
 merged_df = pd.concat(all_data, ignore_index=True)
 
-# ========== تبويب 1: تقرير إجمالي للمستخدمين ==========
+# ========== تبويب 1: التقرير التجميعي ==========
 with tabs[0]:
-    st.subheader("👤 مجموع درجات كل مستخدم")
-    scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
-    grouped = merged_df.groupby("username")[scores.columns].sum()
-    grouped["المجموع"] = grouped.sum(axis=1)
-    cols = grouped.columns.tolist()
-    if "المجموع" in cols:
-        cols.insert(0, cols.pop(cols.index("المجموع")))
-        grouped = grouped[cols]
-    grouped = grouped.sort_values(by="المجموع", ascending=True)
-    
-    # عرض اسم الشخص والمجموع بشكل واضح وكبير بلون أخضر داكن
-    for index, row in grouped.iterrows():
-        st.markdown(f"### <span style='color: #006400;'>{index} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
-
-# ========== تبويب 2: التقرير التجميعي ==========
-with tabs[1]:
     st.subheader("📋 مجموع الدرجات لكل مستخدم")
+    scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
     cols = grouped.columns.tolist()
@@ -146,8 +135,8 @@ with tabs[1]:
     grouped = grouped.sort_values(by="المجموع", ascending=True)
     st.dataframe(grouped, use_container_width=True)
 
-# ========== تبويب 3: تقرير بند معين ==========
-with tabs[2]:
+# ========== تبويب 2: تقرير بند معين ==========
+with tabs[1]:
     st.subheader("📌 مجموع بند معين لكل المستخدمين")
     all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username"]]
     selected_activity = st.selectbox("اختر البند", all_columns)
@@ -160,8 +149,8 @@ with tabs[2]:
 
     st.dataframe(activity_sum, use_container_width=True)
 
-# ========== تبويب 4: تقرير فردي ==========
-with tabs[3]:
+# ========== تبويب 3: تقرير فردي ==========
+with tabs[2]:
     st.subheader("👤 تقرير تفصيلي لمستخدم")
     selected_user = st.selectbox("اختر المستخدم", merged_df["username"].unique())
     user_df = merged_df[merged_df["username"] == selected_user].sort_values("التاريخ")
@@ -175,8 +164,8 @@ with tabs[3]:
 
     st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
 
-# ========== تبويب 5: رسوم بيانية ==========
-with tabs[4]:
+# ========== تبويب 4: رسوم بيانية ==========
+with tabs[3]:
     st.subheader("📈 رسوم بيانية")
     pie_fig = go.Figure(go.Pie(
         labels=grouped.index,
