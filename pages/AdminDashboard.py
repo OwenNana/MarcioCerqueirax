@@ -19,7 +19,7 @@ if st.session_state.get("permissions") != "admin":
     permission = st.session_state.get("permissions")
     if permission == "user":
         st.switch_page("pages/UserDashboard.py")
-    elif permission == "supervisor":
+    elif permission in ["supervisor", "sp"]:
         st.switch_page("pages/Supervisor.py")
     else:
         st.switch_page("home.py")
