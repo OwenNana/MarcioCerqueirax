@@ -60,14 +60,14 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title(f"👋 أهلاً {st.session_state.get('full_name')}")
+st.title(f"👋 أهلاً {username}")
 
 # ===== تحديد المستخدمين المتاحين للمحادثة =====
 all_user_options = []
 
 if permissions == "sp":
     my_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
-    all_user_options += [(s, "مشرف") for s in my_supervisors]  # لا يتغير إلا إذا كان هناك تغيير آخر
+    all_user_options += [(s, "مشرف") for s in my_supervisors]
 
 if permissions in ["supervisor", "sp"]:
     assigned_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin([username] + [s for s, _ in all_user_options]))]
@@ -120,8 +120,7 @@ def show_chat_supervisor():
     if "selected_user_display" not in st.session_state:
         st.session_state["selected_user_display"] = "اختر الشخص"
 
-    options_display = ["اختر الشخص"] + [f"{full_name} ({role})" for full_name, role in all_user_options]
-
+    options_display = ["اختر الشخص"] + [f"{name} ({role})" for name, role in all_user_options]
     selected_display = st.selectbox("اختر الشخص", options_display, key="selected_user_display")
 
     if selected_display != "اختر الشخص":
@@ -171,8 +170,7 @@ def show_chat_supervisor():
         if st.button("📨 إرسال الرسالة"):
             if new_msg.strip():  # تأكد من أن الرسالة ليست فارغة
                 timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
-                chat_sheet.append_row([timestamp, full_name, selected_user, new_msg, ""])
-
+                chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
         
                 # رسالة تم إرسالها
                 st.success("✅ تم إرسال الرسالة")
@@ -192,8 +190,6 @@ def show_chat_supervisor():
 
 
 # ===== تبويب 1: تقرير إجمالي =====
-with tabs[0]:
-    # === # ===== تبويب 1: تقرير إجمالي =====
 with tabs[0]:
     # === تنبيه بالرسائل غير المقروءة ===
     chat_data = pd.DataFrame(chat_sheet.get_all_records())
@@ -217,35 +213,32 @@ with tabs[0]:
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_2"):
         st.cache_data.clear()
         st.rerun()
-
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
     grouped = grouped.sort_values(by="المجموع", ascending=True)
-
-    # تصحيح المحاذاة في هذه الحلقة
     for user, row in grouped.iterrows():
-        full_name = users_df.loc[users_df["username"] == user, "full_name"].values[0]  # جلب الاسم الكامل
+        full_name = users_df.loc[users_df["username"] == user, "full_name"].values[0]
         st.markdown(f"### <span style='color: #006400;'>{full_name} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
+
 
 # ===== تبويب 2: المحادثات =====
 with tabs[1]:
     show_chat_supervisor()
 
+
+
+
+
+
+
 # ===== تبويب 3: تجميعي الكل =====
 with tabs[2]:
     st.subheader("📋 تفاصيل الدرجات للجميع")
-    
-    # زر جلب البيانات
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_3"):
         st.cache_data.clear()
         st.rerun()
-
-    # نضيف "الاسم الكامل" إلى grouped
-    grouped["full_name"] = grouped.index.map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
-
-    # عرض البيانات مع "الاسم الكامل" في `grouped`
-    st.dataframe(grouped[['full_name', 'المجموع']], use_container_width=True)
+    st.dataframe(grouped, use_container_width=True)
 
 # ===== تبويب 4: تجميعي بند =====
 with tabs[3]:
@@ -287,4 +280,3 @@ with tabs[5]:
         title="مجموع الدرجات"
     ))
     st.plotly_chart(fig, use_container_width=True)
-
