@@ -114,7 +114,6 @@ tabs = st.tabs([" تقرير إجمالي", "💬 المحادثات", "📋 ت�
 
 # ===== دالة عرض المحادثة =====
 
-
 def show_chat_supervisor():
     st.subheader("💬 الدردشة")
 
@@ -127,46 +126,44 @@ def show_chat_supervisor():
     if selected_display != "اختر الشخص":
         selected_user = selected_display.split(" (")[0]
 
-        # استرجاع البيانات من ورقة الدردشة
         chat_data = pd.DataFrame(chat_sheet.get_all_records())
 
         # تحقق من أن البيانات ليست فارغة
         if chat_data.empty:
             st.info("💬 لا توجد رسائل بعد.")
-            return
-
-        # تحقق من وجود الأعمدة المطلوبة
-        required_columns = {"timestamp", "from", "to", "message", "read_by_receiver"}
-        if not required_columns.issubset(chat_data.columns):
-            st.warning(f"⚠️ الأعمدة المطلوبة غير موجودة في ورقة الدردشة. الأعمدة الموجودة: {chat_data.columns}")
-            return
-
-        # حذف أي بيانات فارغة في الحقول المطلوبة
-        chat_data = chat_data.dropna(subset=["timestamp", "from", "to", "message", "read_by_receiver"])
-
-        # تحديث حالة القراءة
-        unread_indexes = chat_data[
-            (chat_data["from"] == selected_user) &
-            (chat_data["to"] == username) &
-            (chat_data["read_by_receiver"].astype(str).str.strip() == "")
-        ].index.tolist()
-
-        for i in unread_indexes:
-            chat_sheet.update_cell(i + 2, 5, "✓")  # الصف +2 لأن الصف الأول للعناوين
-
-        # عرض الرسائل
-        messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
-                             ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
-        messages = messages.sort_values(by="timestamp")
-
-        if messages.empty:
-            st.info("💬 لا توجد رسائل بعد.")
         else:
-            for _, msg in messages.iterrows():
-                if msg["from"] == username:
-                    st.markdown(f"<p style='color:#8B0000'><b>‍ أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<p style='color:#000080'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
+            # تحقق من وجود الأعمدة المطلوبة
+            required_columns = {"timestamp", "from", "to", "message", "read_by_receiver"}
+            if not required_columns.issubset(chat_data.columns):
+                st.warning(f"⚠️ الأعمدة المطلوبة غير موجودة في ورقة الدردشة. الأعمدة الموجودة: {chat_data.columns}")
+                return
+
+            # حذف أي بيانات فارغة في الحقول المطلوبة
+            chat_data = chat_data.dropna(subset=["timestamp", "from", "to", "message", "read_by_receiver"])
+
+            # تحديث حالة القراءة
+            unread_indexes = chat_data[
+                (chat_data["from"] == selected_user) &
+                (chat_data["to"] == username) &
+                (chat_data["read_by_receiver"].astype(str).str.strip() == "")
+            ].index.tolist()
+
+            for i in unread_indexes:
+                chat_sheet.update_cell(i + 2, 5, "✓")  # الصف +2 لأن الصف الأول للعناوين
+
+            # عرض الرسائل
+            messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
+                                 ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
+            messages = messages.sort_values(by="timestamp")
+
+            if messages.empty:
+                st.info("💬 لا توجد رسائل بعد.")
+            else:
+                for _, msg in messages.iterrows():
+                    if msg["from"] == username:
+                        st.markdown(f"<p style='color:#8B0000'><b>‍ أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<p style='color:#000080'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
         # حقل النص لإدخال الرسالة
         new_msg = st.text_area("✏️ اكتب رسالتك", height=100, key="chat_message")
@@ -185,7 +182,6 @@ def show_chat_supervisor():
                 del st.session_state["chat_message"]
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
-
 
 
 
