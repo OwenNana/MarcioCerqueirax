@@ -55,9 +55,14 @@ def load_data():
 tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع"])
 
 # ===== التبويب الأول: إدخال البيانات =====
-with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها بشكل صحيح
-    st.title(f"👋 أهلاً {username}")  # عرض اسم المستخدم بعد "أهلاً"
+with tabs[0]:
+    st.title(f"👋 أهلاً {username}")
     
+    # زر تحديث البيانات
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab1"):
+        st.cache_data.clear()
+        st.rerun()
+
     with st.form("daily_form"):
         today = datetime.today().date()
         allowed_dates = [today - timedelta(days=i) for i in range(7)]
@@ -68,8 +73,7 @@ with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها �
 
         values = [date.strftime("%Y-%m-%d")]
 
-        # زيادة حجم الخط للعناوين (الأعمدة) في جميع التبويبات
-        # الأعمدة الخمسة الأولى
+        # الاختيارات الأولى
         st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأولى</h3>", unsafe_allow_html=True)
         options_1 = ["في المسجد جماعة", "في المنزل جماعة", "في المسجد منفرد", "في المنزل منفرد", "خارج الوقت"]
         ratings_1 = {
@@ -81,11 +85,11 @@ with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها �
         }
 
         for i, col in enumerate(columns[1:6]):
-            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
+            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)
             rating = st.radio(col, options=options_1, index=0, key=col)
             values.append(str(ratings_1[rating]))
 
-        # الأعمدة الخمسة التالية
+        # الاختيارات الثانية
         st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الثانية</h3>", unsafe_allow_html=True)
         options_2 = ["نعم", "ليس كاملاً", "لا"]
         ratings_2 = {
@@ -95,11 +99,11 @@ with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها �
         }
 
         for i, col in enumerate(columns[6:11]):
-            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
+            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)
             rating = st.radio(col, options=options_2, index=0, key=col)
             values.append(str(ratings_2[rating]))
 
-        # الأعمدة المتبقية
+        # الاختيارات الأخيرة
         st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأخيرة</h3>", unsafe_allow_html=True)
         options_3 = ["نعم", "لا"]
         ratings_3 = {
@@ -108,7 +112,7 @@ with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها �
         }
 
         for i, col in enumerate(columns[11:]):
-            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
+            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)
             rating = st.radio(col, options=options_3, index=0, key=col)
             values.append(str(ratings_3[rating]))
 
@@ -128,31 +132,29 @@ with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها �
                 for i, val in enumerate(values[1:], start=2):
                     worksheet.update_cell(row_index, i, val)
 
-                # بعد الحفظ مباشرةً جلب البيانات الجديدة
-                st.cache_data.clear()  # تفريغ الذاكرة المخبأة
-                data = load_data()  # جلب البيانات الجديدة من جوجل شيت
-
-                # عرض رسالة النجاح فقط
+                st.cache_data.clear()
+                data = load_data()
                 st.success("✅ تم الحفظ بنجاح والاتصال بقاعدة البيانات")
 
 # ===== التبويب الثاني: تقارير المجموع =====
-with tabs[1]:  # التبويب الثاني
+with tabs[1]:
     st.title("📊 مجموع البنود للفترة")
     
-    # زيادة حجم الخط للعناوين في هذا التبويب أيضًا
+    # زر تحديث البيانات
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab2"):
+        st.cache_data.clear()
+        st.rerun()
+
     st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>التقارير</h3>", unsafe_allow_html=True)
 
     df = pd.DataFrame(worksheet.get_all_records())
     df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
 
-    # إزالة الأعمدة غير المسماة التي تحتوي على أرقام تسلسلية (أو أي عمود غير ضروري)
-    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]  # إزالة الأعمدة التي تبدأ بـ 'Unnamed' (غالبًا تحتوي على أرقام تسلسلية)
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
-    # إزالة الصفوف التي تحتوي على بيانات فارغة في "البند" أو "المجموع"
     if "البند" in df.columns and "المجموع" in df.columns:
         df = df.dropna(subset=["البند", "المجموع"])
 
-    # إزالة عمود الأرقام التسلسلية إذا كان موجودًا
     if "رقم التسلسل" in df.columns:
         df = df.drop(columns=["رقم التسلسل"])
 
@@ -166,23 +168,17 @@ with tabs[1]:  # التبويب الثاني
     filtered = df[mask].drop(columns=["التاريخ"], errors="ignore")
 
     totals = filtered.sum(numeric_only=True)
-    total_score = totals.sum()  # حساب مجموع جميع الدرجات
+    total_score = totals.sum()
 
-    # عرض مجموع الدرجات الكلي
     st.metric(label="📌 مجموعك الكلي لجميع البنود", value=int(total_score))
 
-    # الآن عرض مجموع البنود للفترة
     result_df = pd.DataFrame(totals, columns=["المجموع"])
     result_df.index.name = "البند"
     result_df = result_df.reset_index()
     result_df = result_df.sort_values(by="المجموع", ascending=True)
 
-    # عكس ترتيب الأعمدة: نعرض المجموع أولًا ثم اسم البند
-    result_df = result_df[["المجموع", "البند"]]  # ترتيب الأعمدة بحيث يظهر المجموع أولًا
+    result_df = result_df[["المجموع", "البند"]]
+    result_df["البند"] = result_df["البند"].apply(lambda x: f"<p style='color:#8B0000; text-align:center'>{x}</p>")
+    result_df["المجموع"] = result_df["المجموع"].apply(lambda x: f"<p style='color:#000080; text-align:center'>{x}</p>")
 
-    # تغيير ترتيب الأعمدة وعكسهم مع الألوان والتوسيط
-    result_df["البند"] = result_df["البند"].apply(lambda x: f"<p style='color:#8B0000; text-align:center'>{x}</p>")  # اسم البند باللون الأحمر العنابي
-    result_df["المجموع"] = result_df["المجموع"].apply(lambda x: f"<p style='color:#000080; text-align:center'>{x}</p>")  # الدرجة المكتسبة باللون الأزرق الكحلي
-
-    # عرض الجدول مع التنسيق
     st.markdown(result_df.to_html(escape=False), unsafe_allow_html=True)
