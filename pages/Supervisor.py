@@ -143,17 +143,15 @@ with tabs[0]:
         # تحقق من الحقول الفارغة
         empty_fields = user_data.isnull().sum(axis=0)
         
-        # العثور على الحقول الفارغة فقط
-        missing_fields = empty_fields[empty_fields > 0].index.tolist()
-        
-        if missing_fields:
-            missing_data.append((user, missing_fields))
+        # العثور على الأشخاص الذين لم يعبؤوا أي بيانات (جميع الحقول فارغة)
+        if empty_fields.sum() == len(user_data.columns) - 1:  # تجاهل عمود "username"
+            missing_data.append(user)
 
-    # عرض الأشخاص الذين لم يعبئوا البيانات باللون الأحمر
+    # عرض الأشخاص الذين لم يعبئوا البيانات فقط
     if missing_data:
         st.markdown("### الأشخاص الذين لم يعبئوا البيانات:")
-        for user, fields in missing_data:
-            st.markdown(f"<span style='color:red;'><strong>{user}</strong></span> (الحقول الفارغة: {', '.join(fields)})", unsafe_allow_html=True)
+        for user in missing_data:
+            st.markdown(f"<span style='color:red;'><strong>{user}</strong></span>", unsafe_allow_html=True)
 
     # عرض البيانات الأخرى
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
