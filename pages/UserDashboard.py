@@ -171,7 +171,7 @@ with tabs[0]:
     )
 
     # تصغير "أهلاً ... مجموعتك"
-    st.markdown(f"<h3 style='color: #0000FF; font-weight: bold; font-size: 24px;'>👋 أهلاً {full_name} | مجموعتك / {mentor_name}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='color: #0000FF; font-weight: bold; font-size: 24px;'>👋 أهلاً {username} | مجموعتك / {mentor_name}</h3>", unsafe_allow_html=True)
 
     # تصغير "المحاسبة الذاتية"
     st.markdown("<h4 style='color: #0000FF; font-weight: bold; font-size: 20px;'>📝 المحاسبة الذاتية</h4>", unsafe_allow_html=True)
