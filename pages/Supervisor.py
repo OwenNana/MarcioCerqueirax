@@ -20,20 +20,23 @@ if permissions not in ["supervisor", "sp"]:
     else:
         st.switch_page("home.py")
 
-# ===== إعداد الاتصال بـ Google Sheets =====
+# ===== الاتصال بـ Google Sheets =====
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
 creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
 client = gspread.authorize(creds)
 
-# ===== تحميل بيانات المستخدمين من admin sheet =====
 spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
 admin_sheet = spreadsheet.worksheet("admin")
 users_df = pd.DataFrame(admin_sheet.get_all_records())
 
 username = st.session_state.get("username")
 
-# ===== تحديد الطلاب تحت إشراف هذا المشرف =====
+# ===== إعداد الصفحة =====
+st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
+st.title("📊 تقارير المشرف")
+
+# ===== تحديد الطلاب =====
 if permissions == "supervisor":
     assigned_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]["username"].tolist()
 elif permissions == "sp":
@@ -44,11 +47,7 @@ else:
 
 assigned_users.sort()
 
-# ===== واجهة الصفحة =====
-st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
-st.title("📊 تقارير المشرف")
-
-# ===== دالة الدردشة =====
+# ===== دالة عرض المحادثة =====
 def show_chat_supervisor():
     st.markdown("### 💬 الدردشة مع الطلاب")
     if not assigned_users:
@@ -57,10 +56,7 @@ def show_chat_supervisor():
 
     chat_sheet = spreadsheet.worksheet("chat")
     raw_data = chat_sheet.get_all_records()
-    if not raw_data:
-        chat_data = pd.DataFrame(columns=["timestamp", "from", "to", "message"])
-    else:
-        chat_data = pd.DataFrame(raw_data)
+    chat_data = pd.DataFrame(raw_data) if raw_data else pd.DataFrame(columns=["timestamp", "from", "to", "message"])
 
     if not {"from", "to", "message", "timestamp"}.issubset(chat_data.columns):
         st.warning("⚠️ لم يتم العثور على الأعمدة الصحيحة في ورقة الدردشة.")
@@ -69,8 +65,8 @@ def show_chat_supervisor():
     selected_user = st.selectbox("اختر الطالب", assigned_users)
     messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
                          ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
-
     messages = messages.sort_values(by="timestamp")
+
     if messages.empty:
         st.info("💬 لا توجد رسائل بعد.")
     else:
@@ -88,75 +84,71 @@ def show_chat_supervisor():
         else:
             st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
-# ===== تبويبات المشرف =====
+# ===== التبويبات =====
 tabs = st.tabs(["💬 المحادثات", "👤 تقرير إجمالي", "📋 تجميعي الكل", "📌 تجميعي بند", "👤 تقرير فردي", "📈 رسوم بيانية"])
 
+# ===== تبويب المحادثات =====
 with tabs[0]:
     show_chat_supervisor()
-    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_chat"):
-        st.cache_data.clear()
-        st.rerun()
-# ===== تحديد الفترة الزمنية =====
-start_date = st.date_input("من تاريخ", datetime.today())
-end_date = st.date_input("إلى تاريخ", datetime.today())
-if start_date > end_date:
-    st.error("⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
-    st.stop()
-
-# ===== تصفية المستخدمين حسب الصلاحيات =====
-if permissions == "supervisor":
-    filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
-elif permissions == "sp":
-    supervised_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
-    filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin(supervised_supervisors))]
-
-if filtered_users.empty:
-    st.info("ℹ️ لا يوجد طلاب لعرض تقاريرهم.")
-    st.stop()
-
-# ===== جلب البيانات لكل طالب =====
-all_data = []
-users_with_data = []
-all_usernames = filtered_users["username"].tolist()
-
-for _, user in filtered_users.iterrows():
-    username = user["username"]
-    sheet_name = user["sheet_name"]
-    try:
-        user_ws = spreadsheet.worksheet(sheet_name)
-        user_records = user_ws.get_all_records()
-        df = pd.DataFrame(user_records)
-        if "التاريخ" in df.columns:
-            df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
-            df = df[(df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))]
-            if not df.empty:
-                df.insert(0, "username", username)
-                all_data.append(df)
-                users_with_data.append(username)
-            else:
-                empty_df = pd.DataFrame(columns=df.columns)
-                empty_df["username"] = [username]
-                empty_df["التاريخ"] = pd.NaT
-                for col in empty_df.columns:
-                    if col not in ["username", "التاريخ"]:
-                        empty_df[col] = 0
-                all_data.append(empty_df)
-                users_with_data.append(username)
-    except Exception as e:
-        st.warning(f"⚠️ خطأ في تحميل بيانات {username}: {e}")
-
-if not all_data:
-    st.info("ℹ️ لا توجد بيانات في الفترة المحددة.")
-    st.stop()
-
-merged_df = pd.concat(all_data, ignore_index=True)
-
-# ========== تبويب 2: تقرير إجمالي ==========
+# ===== تحديد الفترة الزمنية (داخل التبويبات) =====
 with tabs[1]:
     st.subheader("👤 مجموع درجات كل مستخدم")
+    start_date = st.date_input("من تاريخ", datetime.today(), key="start_tab1")
+    end_date = st.date_input("إلى تاريخ", datetime.today(), key="end_tab1")
+    if start_date > end_date:
+        st.error("⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
+        st.stop()
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab1"):
         st.cache_data.clear()
         st.rerun()
+
+    # ===== تصفية المستخدمين حسب الصلاحيات =====
+    if permissions == "supervisor":
+        filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
+    elif permissions == "sp":
+        supervised_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
+        filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin(supervised_supervisors))]
+
+    if filtered_users.empty:
+        st.info("ℹ️ لا يوجد طلاب لعرض تقاريرهم.")
+        st.stop()
+
+    all_data = []
+    users_with_data = []
+    all_usernames = filtered_users["username"].tolist()
+
+    for _, user in filtered_users.iterrows():
+        user_name = user["username"]
+        sheet_name = user["sheet_name"]
+        try:
+            user_ws = spreadsheet.worksheet(sheet_name)
+            user_records = user_ws.get_all_records()
+            df = pd.DataFrame(user_records)
+            if "التاريخ" in df.columns:
+                df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
+                df = df[(df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))]
+                if not df.empty:
+                    df.insert(0, "username", user_name)
+                    all_data.append(df)
+                    users_with_data.append(user_name)
+                else:
+                    empty_df = pd.DataFrame(columns=df.columns)
+                    empty_df["username"] = [user_name]
+                    empty_df["التاريخ"] = pd.NaT
+                    for col in empty_df.columns:
+                        if col not in ["username", "التاريخ"]:
+                            empty_df[col] = 0
+                    all_data.append(empty_df)
+                    users_with_data.append(user_name)
+        except Exception as e:
+            st.warning(f"⚠️ خطأ في تحميل بيانات {user_name}: {e}")
+
+    if not all_data:
+        st.info("ℹ️ لا توجد بيانات في الفترة المحددة.")
+        st.stop()
+
+    merged_df = pd.concat(all_data, ignore_index=True)
+
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
@@ -168,7 +160,7 @@ with tabs[1]:
     for index, row in grouped.iterrows():
         st.markdown(f"### <span style='color: #006400;'>{index} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
 
-# ========== تبويب 3: تجميعي الكل ==========
+# ===== تبويب 3: تجميعي الكل =====
 with tabs[2]:
     st.subheader("📋 مجموع الدرجات لكل مستخدم")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab2"):
@@ -176,7 +168,7 @@ with tabs[2]:
         st.rerun()
     st.dataframe(grouped, use_container_width=True)
 
-# ========== تبويب 4: تجميعي بند ==========
+# ===== تبويب 4: تجميعي بند =====
 with tabs[3]:
     st.subheader("📌 مجموع بند معين لكل المستخدمين")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab3"):
@@ -192,7 +184,7 @@ with tabs[3]:
 
     st.dataframe(activity_sum, use_container_width=True)
 
-# ========== تبويب 5: تقرير فردي ==========
+# ===== تبويب 5: تقرير فردي =====
 with tabs[4]:
     st.subheader("👤 تقرير تفصيلي لمستخدم")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab4"):
@@ -202,7 +194,7 @@ with tabs[4]:
     user_df = merged_df[merged_df["username"] == selected_user].sort_values("التاريخ")
     st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
 
-# ========== تبويب 6: رسوم بيانية ==========
+# ===== تبويب 6: رسوم بيانية =====
 with tabs[5]:
     st.subheader("📈 رسوم بيانية")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab5"):
