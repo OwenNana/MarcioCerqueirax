@@ -295,8 +295,11 @@ with tabs[3]:
     for user in missing_users:
         activity_sum[user] = 0
 
-    # عرض البيانات مع "الاسم الكامل" في activity_sum
-    st.dataframe(activity_sum, use_container_width=True)
+    # تخصيص عرض البيانات في DataFrame بحيث يتسع "full_name"
+    activity_sum_df = activity_sum.reset_index()  # تحويل البيانات إلى DataFrame لعرضها
+
+    # عرض النتائج مع توسيع حقل "full_name"
+    st.dataframe(activity_sum_df, use_container_width=True)
 
 # ===== تبويب 5: تقرير فردي =====
 with tabs[4]:
