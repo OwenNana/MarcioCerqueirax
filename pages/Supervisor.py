@@ -132,11 +132,14 @@ def show_chat_supervisor():
             st.info("💬 لا توجد رسائل بعد.")
             return
 
-        # تحقق من وجود الأعمدة المطلوبة
+        # تحقق من الأعمدة المطلوبة
         required_columns = {"timestamp", "from", "to", "message", "read_by_receiver"}
         if not required_columns.issubset(chat_data.columns):
-            st.warning("⚠️ الأعمدة المطلوبة غير موجودة في ورقة الدردشة.")
+            st.warning(f"⚠️ الأعمدة المطلوبة غير موجودة في ورقة الدردشة. الأعمدة الموجودة: {chat_data.columns}")
             return
+
+        # طباعة الأعمدة لفحصها (للتأكد)
+        st.write("الأعمدة الموجودة في ورقة الدردشة:", chat_data.columns)
 
         chat_data = chat_data[chat_data["message"].notna()]
         chat_data = chat_data[["timestamp", "from", "to", "message", "read_by_receiver"]]
