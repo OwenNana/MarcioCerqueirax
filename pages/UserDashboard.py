@@ -4,7 +4,7 @@ import gspread
 import json
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
-from hijri_converter import Gregorian
+from hijri_converter import Hijri, Gregorian
 
 
 # ===== إعادة التوجيه إلى صفحة تسجيل الدخول إذا لم يتم تسجيل الدخول =====
@@ -128,6 +128,7 @@ with tabs[0]:
 
     
 
+
 # ===== التبويب الثاني: إدخال البيانات =====
 with tabs[1]:
     st.title("📝 تعبئة النموذج اليومي")
@@ -135,31 +136,31 @@ with tabs[1]:
 
     with st.form("daily_form"):
         today = datetime.today().date()
-        allowed_dates = [today - timedelta(days=i) for i in range(7)]
-        date = st.date_input("📅 التاريخ (ميلادي)", today)
 
-        if date not in allowed_dates:
-            st.warning("⚠️ يمكن تعبئة البيانات خلال أسبوع سابق من اليوم فقط.")
+        # توليد آخر 7 تواريخ بالهجري
+        hijri_dates = []
+        for i in range(7):
+            g_date = today - timedelta(days=i)
+            h_date = Gregorian(g_date.year, g_date.month, g_date.day).to_hijri()
+            weekday = g_date.strftime("%A")
+            arabic_weekday = {
+                "Saturday": "السبت",
+                "Sunday": "الأحد",
+                "Monday": "الاثنين",
+                "Tuesday": "الثلاثاء",
+                "Wednesday": "الأربعاء",
+                "Thursday": "الخميس",
+                "Friday": "الجمعة"
+            }[weekday]
+            hijri_label = f"{arabic_weekday} - {h_date.day}/{h_date.month}/{h_date.year} هـ"
+            hijri_dates.append((hijri_label, g_date))
 
-        # تحويل إلى هجري
-        hijri = Gregorian(date.year, date.month, date.day).to_hijri()
+        # إنشاء قائمة اختيار من التواريخ الهجرية
+        hijri_labels = [label for label, _ in hijri_dates]
+        selected_label = st.selectbox("📅 اختر التاريخ (هجري)", hijri_labels)
+        selected_date = dict(hijri_dates)[selected_label]  # هذا هو التاريخ الميلادي المطابق
 
-        # أسماء أيام الأسبوع بالعربية
-        arabic_weekdays = {
-            "Saturday": "السبت",
-            "Sunday": "الأحد",
-            "Monday": "الاثنين",
-            "Tuesday": "الثلاثاء",
-            "Wednesday": "الأربعاء",
-            "Thursday": "الخميس",
-            "Friday": "الجمعة"
-        }
-        weekday_name = arabic_weekdays[date.strftime("%A")]
-
-        st.markdown(f"### 🗓️ اليوم: {weekday_name}")
-        st.markdown(f"### 📆 التاريخ الهجري: {hijri.day}-{hijri.month}-{hijri.year} هـ")
-
-        values = [date.strftime("%Y-%m-%d")]
+        values = [selected_date.strftime("%Y-%m-%d")]
 
         # الاختيارات الأولى
         st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأولى</h3>", unsafe_allow_html=True)
@@ -176,6 +177,7 @@ with tabs[1]:
             st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)
             rating = st.radio(col, options_1, index=0, key=col)
             values.append(str(ratings_1[rating]))
+
 
     
     
