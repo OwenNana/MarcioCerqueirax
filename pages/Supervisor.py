@@ -139,10 +139,15 @@ with tabs[0]:
     missing_data = []
     for user in merged_df['username'].unique():
         user_data = merged_df[merged_df['username'] == user]
-        empty_fields = user_data.isnull().sum(axis=1)
-        if empty_fields.any():
-            missing_fields = user_data.columns[empty_fields > 0]
-            missing_data.append((user, missing_fields.tolist()))
+        
+        # تحقق من الحقول الفارغة
+        empty_fields = user_data.isnull().sum(axis=0)
+        
+        # العثور على الحقول الفارغة فقط
+        missing_fields = empty_fields[empty_fields > 0].index.tolist()
+        
+        if missing_fields:
+            missing_data.append((user, missing_fields))
 
     # عرض الأشخاص الذين لم يعبئوا البيانات باللون الأحمر
     if missing_data:
