@@ -84,11 +84,12 @@ def show_chat_supervisor():
             else:
                 st.markdown(f"<p style='color:#000080'><b>🙋‍♂️ {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
-    new_msg = st.text_area("✏️ اكتب رسالتك", height=100)
+    new_msg = st.text_area("✏️ اكتب رسالتك", height=500, key="chat_message")
     if st.button("📨 إرسال الرسالة"):
         if new_msg.strip():
             timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")  # بتوقيت السعودية
             chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
+            st.session_state["chat_message"] = ""
             st.success("✅ تم إرسال الرسالة")
             st.rerun()
         else:
