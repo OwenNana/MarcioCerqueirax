@@ -153,15 +153,12 @@ with tabs[0]:
         for user in missing_data:
             st.markdown(f"<span style='color:red;'><strong>{user}</strong></span>", unsafe_allow_html=True)
 
-    # عرض البيانات الأخرى
+    # معالجة القيم الفارغة قبل التجميع (استبدالها بـ NaN)
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
-    grouped = merged_df.groupby("username")[scores.columns].sum()
-    grouped["المجموع"] = grouped.sum(axis=1)
-    cols = grouped.columns.tolist()
-    if "المجموع" in cols:
-        cols.insert(0, cols.pop(cols.index("المجموع")))
-        grouped = grouped[cols]
-    grouped = grouped.sort_values(by="المجموع", ascending=True)
+    scores = scores.apply(pd.to_numeric, errors='coerce')  # تحويل القيم إلى أرقام، مع تحويل القيم الفارغة إلى NaN
+    grouped = scores.sum(axis=0)  # جمع القيم عبر الأعمدة (أي تجميع لكل بنود النشاط)
+    grouped["المجموع"] = grouped.sum()
+
     st.dataframe(grouped, use_container_width=True)
 
 # ========== تبويب 2: تقرير بند معين ==========
