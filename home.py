@@ -60,13 +60,23 @@ if not st.session_state["authenticated"]:
             else:
                 st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
 
-    # 🛡️ JavaScript لإلغاء تفعيل اقتراح كلمة المرور
+    # ===== منع اقتراح كلمة المرور التلقائي على iPhone =====
     st.markdown("""
         <script>
-        const userInput = document.querySelector('input#username_input');
-        const passInput = document.querySelector('input#password_input');
-        if (userInput) userInput.setAttribute('autocomplete', 'off');
-        if (passInput) passInput.setAttribute('autocomplete', 'off');
+        setTimeout(() => {
+            const userInput = window.parent.document.querySelector('input#username_input');
+            const passInput = window.parent.document.querySelector('input#password_input');
+
+            if (userInput) {
+                userInput.setAttribute("autocomplete", "off");
+                userInput.setAttribute("name", "no-username");
+            }
+
+            if (passInput) {
+                passInput.setAttribute("autocomplete", "new-password");
+                passInput.setAttribute("name", "no-password");
+            }
+        }, 500);
         </script>
     """, unsafe_allow_html=True)
 
