@@ -124,6 +124,9 @@ def show_chat_supervisor():
     if "selected_user_display" not in st.session_state:
         st.session_state["selected_user_display"] = "اختر الشخص"
 
+    if "chat_message" not in st.session_state:
+        st.session_state["chat_message"] = ""  # تعيين المفتاح إذا لم يكن موجودًا
+
     options_display = ["اختر الشخص"] + [f"{name} ({role})" for name, role in all_user_options]
     selected_display = st.selectbox("اختر الشخص", options_display, key="selected_user_display")
 
