@@ -153,17 +153,21 @@ def show_chat_supervisor():
                 else:
                     st.markdown(f"<p style='color:#000080'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
+        # حقل النص لإدخال الرسالة
         new_msg = st.text_area("✏️ اكتب رسالتك", height=100, key="chat_message")
         if st.button("📨 إرسال الرسالة"):
-            if new_msg.strip():
+            if new_msg.strip():  # تأكد من أن الرسالة ليست فارغة
                 timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
                 chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
         
-        # رسالة تم إرسالها
+                # رسالة تم إرسالها
                 st.success("✅ تم إرسال الرسالة")
 
-        # إعادة تحميل الصفحة بعد الإرسال
+                # إعادة تحميل الصفحة بعد الإرسال
                 st.rerun()
+
+                # مسح النص في حقل النص
+                del st.session_state["chat_message"]
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
