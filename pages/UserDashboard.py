@@ -62,6 +62,43 @@ def load_data():
     df = pd.DataFrame(data)
     return df
 
+# ===== دالة عرض نافذة المحادثة =====
+def show_chat():
+    st.markdown("### 💬 محادثتك مع المشرف")
+
+    chat_sheet = spreadsheet.worksheet("chat")
+    chat_data = pd.DataFrame(chat_sheet.get_all_records())
+
+    # عرض الرسائل بين المستخدم والمشرف
+    messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == mentor_name)) |
+                         ((chat_data["from"] == mentor_name) & (chat_data["to"] == username))]
+
+    messages = messages.sort_values(by="timestamp")
+    for _, msg in messages.iterrows():
+        sender = "🧑‍🏫 مشرفك" if msg["from"] == mentor_name else "🙋‍♂️ أنت"
+        st.markdown(f"**{sender}**: {msg['message']}")
+
+    # إرسال رسالة جديدة
+    new_msg = st.text_input("✏️ اكتب رسالتك لمشرفك هنا")
+    if st.button("📨 إرسال الرسالة"):
+        if new_msg.strip():
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            chat_sheet.append_row([timestamp, username, mentor_name, new_msg])
+            st.success("✅ تم إرسال الرسالة")
+            st.experimental_rerun()
+        else:
+            st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+
+# ===== عرض نافذة المحادثة تلقائيًا عند الدخول (مرة واحدة) =====
+if "chat_opened" not in st.session_state:
+    st.session_state["chat_opened"] = True
+
+if st.session_state["chat_opened"]:
+    with st.expander("💬 محادثة مع مشرفك", expanded=True):
+        show_chat()
+        if st.button("❌ إغلاق المحادثة"):
+            st.session_state["chat_opened"] = False
+
 # ===== تبويبات المستخدم =====
 tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع"])
 
@@ -69,6 +106,11 @@ tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المج�
 with tabs[0]:
     st.title(f"👋 أهلاً {username}  |   مجموعتك \ {mentor_name}")
     refresh_button("refresh_tab1")
+
+    # زر لفتح نافذة المحادثة من جديد
+    if st.button("💬 الدردشة مع المشرف"):
+        st.session_state["chat_opened"] = True
+        st.experimental_rerun()
 
     with st.form("daily_form"):
         today = datetime.today().date()
@@ -120,7 +162,7 @@ with tabs[0]:
 
         for i, col in enumerate(columns[11:]):
             st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)
-            rating = st.radio(col, options_3, index=0, key=col)
+            rating = st.radio(col, options=options_3, index=0, key=col)
             values.append(str(ratings_3[rating]))
 
         submit = st.form_submit_button("💾 حفظ")
