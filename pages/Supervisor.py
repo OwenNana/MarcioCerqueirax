@@ -171,45 +171,30 @@ def show_chat_supervisor():
 
         # حقل النص لإدخال الرسالة
         new_msg = st.text_area("✏️ اكتب رسالتك", height=100, key="chat_message")
-        if st.button("📨 إرسال الرسالة"):
-            if new_msg.strip():  # تأكد من أن الرسالة ليست فارغة
+
+        # عمود الزر "مسح الرسالة" و "إرسال الرسالة"
+        col_clear, col_send = st.columns([1, 3])
+
+        # زر مسح الرسالة
+        if col_clear.button("🧹 مسح الرسالة"):
+            st.session_state["chat_message"] = ""  # تعيين الحقل ليصبح فارغاً
+            st.experimental_rerun()  # لإعادة رسم الصفحة وإظهار أن الحقل فارغ
+
+        # زر إرسال الرسالة
+        if col_send.button("📨 إرسال الرسالة"):
+            if new_msg.strip():  # تأكد من عدم فراغ الرسالة
                 timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
                 chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
-        
-                # رسالة تم إرسالها
                 st.success("✅ تم إرسال الرسالة")
-
-                # إعادة تحميل البيانات من ورقة الدردشة وعرض الرسالة المرسلة
-                chat_data = pd.DataFrame(chat_sheet.get_all_records())
-                chat_data = chat_data[chat_data["message"].notna()]
-                chat_data = chat_data[["timestamp", "from", "to", "message", "read_by_receiver"]]
-
-                # عرض الرسائل الجديدة مع الرسالة المرسلة
-                messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
-                                     ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
-                messages = messages.sort_values(by="timestamp")
-
-                if messages.empty:
-                    st.info("💬 لا توجد رسائل بعد.")
-                else:
-                    for _, msg in messages.iterrows():
-                        if msg["from"] == username:
-                            st.markdown(f"<p style='color:#8B0000'><b>‍ أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
-                        else:
-                            st.markdown(f"<p style='color:#000080'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
-
-                # مسح النص في حقل النص
-                del st.session_state["chat_message"]
+                st.session_state["chat_message"] = ""  # إعادة تعيين الحقل ليصبح فارغاً
+                st.experimental_rerun()  # تحديث الصفحة لإزالة محتوى الحقل
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
-        # إضافة زر لمسح الدردشة داخل مربع النص
-        if st.button("❌ مسح الدردشة"):
-            # مسح جميع الرسائل في ورقة الدردشة (تنظيف ورقة "chat")
-            chat_sheet.clear()
-            # مسح محتويات مربع النص
-            st.session_state["chat_message"] = ""
-            st.success("✅ تم مسح الدردشة بنجاح.")
+
+
+
+
 
 
 
