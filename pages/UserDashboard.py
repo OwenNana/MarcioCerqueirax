@@ -62,10 +62,9 @@ def load_data():
     df = pd.DataFrame(data)
     return df
 
-# ===== دالة عرض نافذة المحادثة =====
+# ===== دالة عرض المحادثة =====
 def show_chat():
     st.markdown("### 💬 محادثتك مع المشرف")
-
     chat_sheet = spreadsheet.worksheet("chat")
     raw_data = chat_sheet.get_all_records()
 
@@ -97,28 +96,19 @@ def show_chat():
         else:
             st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
-# ===== عرض نافذة المحادثة تلقائيًا عند الدخول (مرة واحدة) =====
-if "chat_opened" not in st.session_state:
-    st.session_state["chat_opened"] = True
-
-if st.session_state["chat_opened"]:
-    with st.expander("💬 محادثة مع مشرفك", expanded=True):
-        show_chat()
-        if st.button("❌ إغلاق المحادثة"):
-            st.session_state["chat_opened"] = False
-
 # ===== تبويبات المستخدم =====
-tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع"])
+tabs = st.tabs(["💬 المحادثات", "📝 إدخال البيانات", "📊 تقارير المجموع"])
 
-# ===== التبويب الأول: إدخال البيانات =====
+# ===== التبويب الأول: المحادثة =====
 with tabs[0]:
-    st.title(f"👋 أهلاً {username}  |   مجموعتك \ {mentor_name}")
-    refresh_button("refresh_tab1")
+    st.title(f"👋 أهلاً {username} | 🧑‍🏫 مجموعتك: {mentor_name}")
+    refresh_button("refresh_chat")
+    show_chat()
 
-    # زر لفتح نافذة المحادثة من جديد
-    if st.button("💬 الدردشة مع المشرف"):
-        st.session_state["chat_opened"] = True
-        st.rerun()
+# ===== التبويب الثاني: إدخال البيانات =====
+with tabs[1]:
+    st.title(f"📝 تعبئة النموذج اليومي")
+    refresh_button("refresh_tab1")
 
     with st.form("daily_form"):
         today = datetime.today().date()
@@ -193,8 +183,8 @@ with tabs[0]:
                 data = load_data()
                 st.success("✅ تم الحفظ بنجاح والاتصال بقاعدة البيانات")
 
-# ===== التبويب الثاني: تقارير المجموع =====
-with tabs[1]:
+# ===== التبويب الثالث: تقارير المجموع =====
+with tabs[2]:
     st.title("📊 مجموع البنود للفترة")
     refresh_button("refresh_tab2")
 
