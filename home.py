@@ -19,6 +19,15 @@ if st.button("🔄 جلب المعلومات من قاعدة البيانات"):
     st.cache_data.clear()
     st.success("✅ تم تحديث البيانات")
 
+# إضافة حقول وهمية مخفية لمنع تعبئة iCloud Keychain على iOS
+st.markdown(
+    """
+    <input type="text" name="fake_username" style="opacity:0; position:absolute; top:-1000px;">
+    <input type="password" name="fake_password" style="opacity:0; position:absolute; top:-1000px;">
+    """,
+    unsafe_allow_html=True
+)
+
 # تحقق من صلاحية المستخدم
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
@@ -26,12 +35,6 @@ if "authenticated" not in st.session_state:
 # التحقق من تسجيل الدخول
 if not st.session_state["authenticated"]:
     with st.form("login_form"):
-        # ===== الحقول الوهمية المخفية لتشتيت Safari =====
-        st.markdown("""
-            <input type="text" name="dummy-user" style="display:none">
-            <input type="password" name="dummy-pass" style="display:none">
-        """, unsafe_allow_html=True)
-
         username = st.text_input("اسم المستخدم")
         password = st.text_input("كلمة المرور", type="password")
         submitted = st.form_submit_button("دخول")
@@ -40,7 +43,7 @@ if not st.session_state["authenticated"]:
             # جلب البيانات من شيت الأدمن
             admin_sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY").worksheet("admin")
             users_df = pd.DataFrame(admin_sheet.get_all_records())
-
+            
             # التحقق من وجود المستخدم وكلمة المرور
             matched = users_df[
                 (users_df["username"] == username) &
