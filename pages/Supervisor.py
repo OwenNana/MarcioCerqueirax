@@ -322,16 +322,31 @@ with tabs[4]:
 # ===== تبويب 6: رسوم بيانية =====
 with tabs[5]:
     st.subheader("📈 رسوم بيانية")
+    
+    # زر جلب المعلومات من قاعدة البيانات
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_6"):
         st.cache_data.clear()
         st.rerun()
+
+    # حذف الأعمدة غير المرغوب فيها
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
-    grouped = merged_df.groupby("username")[scores.columns].sum()
+
+    # إضافة "full_name" إلى merged_df
+    merged_df["full_name"] = merged_df["username"].map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
+
+    # تجميع البيانات باستخدام "full_name" بدلاً من "username"
+    grouped = merged_df.groupby("full_name")[scores.columns].sum()
+
+    # حساب المجموع
     grouped["المجموع"] = grouped.sum(axis=1, numeric_only=True)
+
+    # إنشاء الرسم البياني باستخدام "full_name"
     fig = go.Figure(go.Pie(
         labels=grouped.index,
         values=grouped["المجموع"],
         hole=0.4,
         title="مجموع الدرجات"
     ))
+
+    # عرض الرسم البياني
     st.plotly_chart(fig, use_container_width=True)
