@@ -217,7 +217,7 @@ with tabs[0]:
         st.rerun()
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
-    grouped["المجموع"] = grouped.sum(axis=1)
+    grouped["المجموع"] = grouped.sum(axis=1, numeric_only=True)
     grouped = grouped.sort_values(by="المجموع", ascending=True)
     for user, row in grouped.iterrows():
         full_name = users_df.loc[users_df["username"] == user, "full_name"].values[0]
