@@ -120,7 +120,9 @@ def show_chat_supervisor():
     if "selected_user_display" not in st.session_state:
         st.session_state["selected_user_display"] = "اختر الشخص"
 
-    options_display = ["اختر الشخص"] + [f"{name} ({role})" for name, role in all_user_options]
+    options_display = ["اختر الشخص"] + [f"{full_name} ({role})" for full_name, role in all_user_options]
+
+
     selected_display = st.selectbox("اختر الشخص", options_display, key="selected_user_display")
 
     if selected_display != "اختر الشخص":
@@ -260,7 +262,7 @@ with tabs[4]:
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_5"):
         st.cache_data.clear()
         st.rerun()
-    selected_user = st.selectbox("اختر المستخدم", merged_df["username"].unique())
+    selected_user = st.selectbox("اختر المستخدم", merged_df["full_name"].unique())
     user_df = merged_df[merged_df["username"] == selected_user].sort_values("التاريخ")
     st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
 
