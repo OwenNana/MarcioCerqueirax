@@ -231,4 +231,5 @@ with tabs[2]:
     result_df["البند"] = result_df["البند"].apply(lambda x: f"<p style='color:#8B0000; text-align:center'>{x}</p>")
     result_df["المجموع"] = result_df["المجموع"].apply(lambda x: f"<p style='color:#000080; text-align:center'>{x}</p>")
 
-    st.markdown(result_df.to_html(escape=False), unsafe_allow_html=True)
+    st.markdown(result_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+
