@@ -258,12 +258,19 @@ with tabs[3]:
 
 # ===== تبويب 5: تقرير فردي =====
 with tabs[4]:
-    st.subheader(" تقرير تفصيلي لمستخدم")
+    st.subheader("تقرير تفصيلي لمستخدم")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_5"):
         st.cache_data.clear()
         st.rerun()
+
+    # إضافة عمود "full_name" إلى merged_df
+    merged_df["full_name"] = merged_df["username"].map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
+
+    # استخدام "full_name" في selectbox
     selected_user = st.selectbox("اختر المستخدم", merged_df["full_name"].unique())
-    user_df = merged_df[merged_df["username"] == selected_user].sort_values("التاريخ")
+
+    # الآن يمكننا استخدام "full_name" لعرض البيانات
+    user_df = merged_df[merged_df["full_name"] == selected_user].sort_values("التاريخ")
     st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
 
 # ===== تبويب 6: رسوم بيانية =====
