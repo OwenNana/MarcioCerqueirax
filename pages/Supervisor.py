@@ -58,7 +58,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# ===== عرض الاسم والمجموعة =====
 st.title("📊 تقارير المشرف")
+
+# جلب اسم المشرف إذا كان مشرف عادي أو تابع لسوبر مشرف
+if permissions == "supervisor":
+    mentor_name = users_df.loc[users_df["username"] == username, "Mentor"].values[0]
+    st.markdown(f"### 👋 أهلاً {username} | 🧑‍🏫 مجموعتك: {mentor_name}")
+elif permissions == "sp":
+    st.markdown(f"### 👋 أهلاً {username} | 🧑‍🏫 سوبر مشرف (يشرف على عدة مجموعات)")
+
+
+
 
 # ===== تحديد الفترة الزمنية =====
 st.subheader("📅 تحديد الفترة الزمنية")
