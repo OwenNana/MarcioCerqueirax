@@ -5,6 +5,7 @@ import json
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 import plotly.graph_objects as go
+from datetime import datetime, timedelta
 
 # ===== التحقق من تسجيل الدخول =====
 if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
@@ -195,10 +196,8 @@ def show_chat_supervisor():
 
 # ===== تبويب 1: تقرير إجمالي =====
 with tabs[0]:
-    # === تنبيه بالرسائل غير المقروءة ===
+    # تنبيه الرسائل غير المقروءة (الكود الموجود مسبقًا)
     chat_data = pd.DataFrame(chat_sheet.get_all_records())
-    
-    # تحقق من وجود الأعمدة المطلوبة
     required_columns = ["to", "message", "read_by_receiver", "from"]
     if all(col in chat_data.columns for col in required_columns):
         unread_msgs = chat_data[
@@ -209,16 +208,36 @@ with tabs[0]:
         senders = unread_msgs["from"].unique().tolist()
         if senders:
             sender_list = "، ".join(senders)
-            st.markdown(f"<p style='color:red; font-weight:bold;'>يوجد لديك عدد دردشات لم تطلع عليها من ({sender_list})</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='color:red; font-weight:bold;'>يوجد لديك دردشات لم تطلع عليها من ({sender_list})</p>", unsafe_allow_html=True)
     else:
-        st.warning("⚠️ لا يوجد لديك دردشات تأكد يجب الضغط على أيقونة جلب المعلومات من قاعدة البيانات دائما'.")
+        st.warning("⚠️ لا يوجد لديك دردشات. تأكد من الضغط على أيقونة جلب المعلومات من قاعدة البيانات دائماً.")
 
-    st.subheader(" مجموع درجات كل مستخدم")
+    # **إضافة واجهة اختيار التواريخ**
+    st.markdown("### تحديد الفترة الزمنية للتقرير")
+    col_date1, col_date2 = st.columns(2)
+    with col_date1:
+        start_date = st.date_input("من تاريخ", value=datetime.today().date() - timedelta(days=7), key="start_date_tab0")
+    with col_date2:
+        end_date = st.date_input("إلى تاريخ", value=datetime.today().date(), key="end_date_tab0")
+
+    # تصفية البيانات بناءً على الفترة المختارة
+    df_filtered = merged_df.copy()
+    if "التاريخ" in df_filtered.columns:
+        df_filtered["التاريخ"] = pd.to_datetime(df_filtered["التاريخ"], errors="coerce")
+        df_filtered = df_filtered[
+            (df_filtered["التاريخ"] >= pd.to_datetime(start_date)) &
+            (df_filtered["التاريخ"] <= pd.to_datetime(end_date))
+        ]
+    else:
+        st.error("⚠️ عمود التاريخ غير موجود.")
+
+    st.subheader("مجموع درجات كل مستخدم")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_2"):
         st.cache_data.clear()
         st.rerun()
-    scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
-    grouped = merged_df.groupby("username")[scores.columns].sum()
+
+    scores = df_filtered.drop(columns=["التاريخ", "username"], errors="ignore")
+    grouped = df_filtered.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1, numeric_only=True)
     grouped = grouped.sort_values(by="المجموع", ascending=True)
     for user, row in grouped.iterrows():
