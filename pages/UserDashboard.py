@@ -27,7 +27,7 @@ if st.session_state["permissions"] != "user":
     if st.session_state["permissions"] == "admin":
         st.warning("👤 تم تسجيل الدخول كأدمن، سيتم تحويلك للوحة التحكم...")
         st.switch_page("pages/AdminDashboard.py")
-    elif st.session_state["permissions"] == "supervisor":
+    elif st.session_state["permissions"] in ["supervisor", "sp"]:
         st.warning("👤 تم تسجيل الدخول كمشرف، سيتم تحويلك للتقارير...")
         st.switch_page("pages/Supervisor.py")
     else:
