@@ -29,6 +29,7 @@ client = gspread.authorize(creds)
 # ===== إعداد الصفحة =====
 st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
 
+
 st.markdown("""
     <style>
     html, body, [class*="css"]  {
@@ -80,7 +81,8 @@ tabs = st.tabs(["📋 تجميعي الكل", "📌 تجميعي بند", "👤 
 
 # ====== تجميع البيانات من جميع أوراق المستخدمين ======
 all_data = []
-all_usernames = []
+users_with_data = []  # لتتبع المستخدمين الذين لديهم سجلات
+all_users = [user.get("username") for user in users]  # قائمة بجميع المستخدمين
 
 for user in users:
     username = user.get("username")
@@ -89,72 +91,35 @@ for user in users:
         user_ws = admin_sheet.spreadsheet.worksheet(sheet_name)
         user_records = user_ws.get_all_records()
         df = pd.DataFrame(user_records)
-        
-        # تحقق من تواريخ البيانات
         if "التاريخ" in df.columns:
             df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
             df = df[(df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))]
-            df.insert(0, "username", username)
-            all_data.append(df)
-            all_usernames.append(username)
+            if not df.empty:
+                df.insert(0, "username", username)
+                all_data.append(df)
+                users_with_data.append(username)  # سجل أن هذا المستخدم لديه بيانات
+            else:
+                # إذا لم يكن لدى المستخدم أي سجلات في الفترة، أضف صف مع القيم 0
+                empty_df = pd.DataFrame(columns=df.columns)
+                empty_df["username"] = [username]
+                empty_df["التاريخ"] = pd.NaT
+                for col in empty_df.columns:
+                    if col not in ["username", "التاريخ"]:
+                        empty_df[col] = 0
+                all_data.append(empty_df)
+                users_with_data.append(username)
     except Exception as e:
         st.warning(f"⚠️ حدث خطأ أثناء قراءة بيانات {username}: {e}")
-
-# ===== إضافة بيانات المستخدمين الذين لم يعبؤوا بياناتهم =====
-all_usernames_set = set(all_usernames)
-merged_usernames_set = set()
-
-# إذا كانت البيانات المدمجة (merged_df) فارغة، يجب البدء بدمج البيانات المفقودة
-if 'merged_df' in locals():
-    merged_usernames_set = set(merged_df["username"])
-else:
-    merged_df = pd.DataFrame()
-
-# الأشخاص الذين لم يعبؤوا البيانات في فترة التواريخ المحددة
-missing_usernames = all_usernames_set - merged_usernames_set
-missing_data = []
-
-# إضافة السطور الفارغة للأشخاص الذين لم يعبؤوا البيانات
-for username in missing_usernames:
-    empty_row = {"username": username, "التاريخ": None}
-    for column in df.columns:
-        if column != "username" and column != "التاريخ":
-            empty_row[column] = None
-    missing_data.append(empty_row)
-
-# دمج بيانات الأشخاص الذين لم يعبؤوا البيانات مع البيانات المدمجة
-if missing_data:
-    missing_df = pd.DataFrame(missing_data)
-    merged_df = pd.concat([merged_df, missing_df], ignore_index=True)
 
 if not all_data:
     st.info("ℹ️ لا توجد بيانات في الفترة المحددة.")
     st.stop()
 
+merged_df = pd.concat(all_data, ignore_index=True)
+
 # ========== تبويب 1: التقرير التجميعي ==========
 with tabs[0]:
     st.subheader("📋 مجموع الدرجات لكل مستخدم")
-
-    # إيجاد الأشخاص الذين لديهم حقول فارغة ضمن الفترة الزمنية
-    missing_data = []
-    for user in merged_df['username'].unique():
-        user_data = merged_df[merged_df['username'] == user]
-        
-        # تحقق من الحقول الفارغة
-        empty_fields = user_data.isnull().sum(axis=0)
-        
-        # العثور على الأشخاص الذين لم يعبؤوا أي بيانات (جميع الحقول فارغة)
-        if empty_fields.sum() == len(user_data.columns) - 1:  # تجاهل عمود "username"
-            missing_data.append(user)
-
-    # عرض الأشخاص الذين لم يعبئوا البيانات فقط
-    if missing_data:
-        st.markdown("### الأشخاص الذين لم يعبئوا البيانات:")
-        for user in missing_data:
-            st.markdown(f"<span style='color:red;'><strong>{user}</strong></span>", unsafe_allow_html=True)
-
-
-
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
@@ -165,17 +130,17 @@ with tabs[0]:
     grouped = grouped.sort_values(by="المجموع", ascending=True)
     st.dataframe(grouped, use_container_width=True)
 
-
-
-
-
-
 # ========== تبويب 2: تقرير بند معين ==========
 with tabs[1]:
     st.subheader("📌 مجموع بند معين لكل المستخدمين")
     all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username"]]
     selected_activity = st.selectbox("اختر البند", all_columns)
     activity_sum = merged_df.groupby("username")[selected_activity].sum().sort_values(ascending=True)
+
+    # التأكد من إضافة المستخدمين الذين ليس لديهم سجلات
+    missing_users = set(all_users) - set(users_with_data)
+    for user in missing_users:
+        activity_sum[user] = 0
 
     st.dataframe(activity_sum, use_container_width=True)
 
@@ -184,6 +149,14 @@ with tabs[2]:
     st.subheader("👤 تقرير تفصيلي لمستخدم")
     selected_user = st.selectbox("اختر المستخدم", merged_df["username"].unique())
     user_df = merged_df[merged_df["username"] == selected_user].sort_values("التاريخ")
+    
+    # إضافة المستخدمين الذين ليس لديهم سجلات
+    if selected_user not in merged_df["username"].values:
+        user_df = pd.DataFrame({"username": [selected_user], "التاريخ": [pd.NaT]})
+        for col in user_df.columns:
+            if col not in ["username", "التاريخ"]:
+                user_df[col] = 0
+
     st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
 
 # ========== تبويب 4: رسوم بيانية ==========
