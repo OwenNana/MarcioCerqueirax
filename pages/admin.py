@@ -8,27 +8,6 @@ from google.oauth2.service_account import Credentials
 st.set_page_config(layout="wide", page_title="📊 جلب المعلومات")
 st.title("📊 معلومات المستخدمين")
 
-# ===== شعار قابل للنقر =====
-st.markdown("""
-<style>
-@media (max-width: 768px) {
-    .responsive-logo {
-        height: 100px !important;
-    }
-}
-@media (min-width: 769px) {
-    .responsive-logo {
-        height: 200px !important;
-    }
-}
-</style>
-<div style="text-align: center; margin-top: 20px;">
-    <a href="https://self-discipline-emwsdnb4myfqwcr6cqrmic.streamlit.app/" target="_blank">
-        <img class="responsive-logo" src="https://self-discipline-emwsdnb4myfqwcr6cqrmic.streamlit.app/" alt="الصفحة الرئيسية">
-    </a>
-</div>
-""", unsafe_allow_html=True)
-
 # ===== تحميل البيانات من Google Sheets =====
 @st.cache_data
 def load_data():
