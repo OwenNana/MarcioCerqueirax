@@ -228,23 +228,24 @@ with tabs[2]:
     filtered = df[mask].drop(columns=["التاريخ"], errors="ignore")
 
     if filtered.empty:
-    st.warning("⚠️ لا توجد بيانات في الفترة المحددة.")
-else:
-    totals = filtered.sum(numeric_only=True)
-    total_score = totals.sum()
+        st.warning("⚠️ لا توجد بيانات في الفترة المحددة.")
+    else:
+        totals = filtered.sum(numeric_only=True)
+        total_score = totals.sum()
 
-    st.metric(label="📌 مجموعك الكلي لجميع البنود", value=int(total_score))
+        st.metric(label="📌 مجموعك الكلي لجميع البنود", value=int(total_score))
 
-    result_df = pd.DataFrame(totals, columns=["المجموع"])
-    result_df.index.name = "البند"
-    result_df = result_df.reset_index()
-    result_df = result_df.sort_values(by="المجموع", ascending=True)
+        result_df = pd.DataFrame(totals, columns=["المجموع"])
+        result_df.index.name = "البند"
+        result_df = result_df.reset_index()
+        result_df = result_df.sort_values(by="المجموع", ascending=True)
 
-    result_df = result_df[["المجموع", "البند"]]
-    result_df["البند"] = result_df["البند"].apply(lambda x: f"<p style='color:#8B0000; text-align:center'>{x}</p>")
-    result_df["المجموع"] = result_df["المجموع"].apply(lambda x: f"<p style='color:#000080; text-align:center'>{x}</p>")
+        result_df = result_df[["المجموع", "البند"]]
+        result_df["البند"] = result_df["البند"].apply(lambda x: f"<p style='color:#8B0000; text-align:center'>{x}</p>")
+        result_df["المجموع"] = result_df["المجموع"].apply(lambda x: f"<p style='color:#000080; text-align:center'>{x}</p>")
 
-    st.markdown(result_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+        st.markdown(result_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+
     
     result_df = pd.DataFrame(totals, columns=["المجموع"])
     result_df.index.name = "البند"
