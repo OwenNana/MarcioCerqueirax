@@ -67,9 +67,18 @@ def show_chat():
     st.markdown("### 💬 محادثتك مع المشرف")
 
     chat_sheet = spreadsheet.worksheet("chat")
-    chat_data = pd.DataFrame(chat_sheet.get_all_records())
+    raw_data = chat_sheet.get_all_records()
 
-    # عرض الرسائل بين المستخدم والمشرف
+    if not raw_data:
+        st.info("💬 لا توجد رسائل حالياً.")
+        return
+
+    chat_data = pd.DataFrame(raw_data)
+
+    if not {"from", "to", "message", "timestamp"}.issubset(chat_data.columns):
+        st.warning("⚠️ لم يتم العثور على الأعمدة الصحيحة في ورقة الدردشة.")
+        return
+
     messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == mentor_name)) |
                          ((chat_data["from"] == mentor_name) & (chat_data["to"] == username))]
 
@@ -78,7 +87,6 @@ def show_chat():
         sender = "🧑‍🏫 مشرفك" if msg["from"] == mentor_name else "🙋‍♂️ أنت"
         st.markdown(f"**{sender}**: {msg['message']}")
 
-    # إرسال رسالة جديدة
     new_msg = st.text_input("✏️ اكتب رسالتك لمشرفك هنا")
     if st.button("📨 إرسال الرسالة"):
         if new_msg.strip():
@@ -135,7 +143,7 @@ with tabs[0]:
 
         for i, col in enumerate(columns[1:6]):
             st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)
-            rating = st.radio(col, options=options_1, index=0, key=col)
+            rating = st.radio(col, options_1, index=0, key=col)
             values.append(str(ratings_1[rating]))
 
         # الاختيارات الثانية
@@ -149,7 +157,7 @@ with tabs[0]:
 
         for i, col in enumerate(columns[6:11]):
             st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)
-            rating = st.radio(col, options=options_2, index=0, key=col)
+            rating = st.radio(col, options_2, index=0, key=col)
             values.append(str(ratings_2[rating]))
 
         # الاختيارات الأخيرة
@@ -162,7 +170,7 @@ with tabs[0]:
 
         for i, col in enumerate(columns[11:]):
             st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)
-            rating = st.radio(col, options=options_3, index=0, key=col)
+            rating = st.radio(col, options_3, index=0, key=col)
             values.append(str(ratings_3[rating]))
 
         submit = st.form_submit_button("💾 حفظ")
