@@ -64,20 +64,22 @@ with tabs[0]:
         values = [date.strftime("%Y-%m-%d")]
 
         # الأعمدة الخمسة الأولى
-        st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأولى</h3>", unsafe_allow_html=True)
-        options_1 = ["في المسجد جماعة", "في المنزل جماعة", "في المسجد منفرد", "في المنزل منفرد", "خارج الوقت"]
-        ratings_1 = {
-            "في المسجد جماعة": 5,
-            "في المنزل جماعة": 4,
-            "في المسجد منفرد": 3,
-            "في المنزل منفرد": 2,
-            "خارج الوقت": 0
-        }
+st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأولى</h3>", unsafe_allow_html=True)
+options_1 = ["في المسجد جماعة", "في المنزل جماعة", "في المسجد منفرد", "في المنزل منفرد", "خارج الوقت"]
+ratings_1 = {
+    "في المسجد جماعة": 5,
+    "في المنزل جماعة": 4,
+    "في المسجد منفرد": 3,
+    "في المنزل منفرد": 2,
+    "خارج الوقت": 0
+}
 
-        for i, col in enumerate(columns[1:6]):
-            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
-            rating = st.radio(col, options=options_1, index=0, key=col)
-            values.append(str(ratings_1[rating]))
+# عرض العناوين فقط قبل عناصر الاختيار
+for i, col in enumerate(columns[1:6]):
+    st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # عرض العنوان بخط أكبر
+    rating = st.radio(col, options=options_1, index=0, key=col)
+    values.append(str(ratings_1[rating]))
+
 
         # الأعمدة الخمسة التالية
         st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الثانية</h3>", unsafe_allow_html=True)
