@@ -78,11 +78,14 @@ def show_chat():
     st.markdown("### 💬 المحادثة مع المشرف أو السوبر مشرف")
 
     # تحديد الجهة: مشرف أو سوبر مشرف
-    options = [mentor_name]
-    if sp_name:
-        options.append(sp_name)
+    options = []
+if sp_name:
+    options.append((sp_name, "المسؤول"))
+options.append((mentor_name, "المشرف"))
 
-    selected_mentor = st.selectbox("📨 اختر الشخص الذي ترغب بمراسلته", options, index=0, format_func=lambda x: f"🧑‍🏫 {x}")
+    selected_option = st.selectbox("📨 اختر الشخص الذي ترغب بمراسلته", options, index=0, format_func=lambda x: f"{x[0]} ({x[1]})")
+selected_mentor = selected_option[0]
+
 
     chat_sheet = spreadsheet.worksheet("chat")
     raw_data = chat_sheet.get_all_records()
@@ -105,8 +108,17 @@ def show_chat():
             else:
                 st.markdown(f"<p style='color:#8B0000'><b>🧑‍🏫 {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
-    new_msg = st.text_area("✏️ اكتب رسالتك هنا", height=100)
-    if st.button("📨 إرسال الرسالة"):
+    new_msg = st.text_area("✏️ اكتب رسالتك هنا", height=100, key="chat_message")
+if st.button("📨 إرسال الرسالة"):
+    if new_msg.strip():
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        chat_sheet.append_row([timestamp, username, selected_mentor, new_msg])
+        st.session_state["chat_message"] = ""  # ← هذا هو التفريغ
+        st.success("✅ تم إرسال الرسالة")
+        st.rerun()
+    else:
+        st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+
         if new_msg.strip():
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             chat_sheet.append_row([timestamp, username, selected_mentor, new_msg])
