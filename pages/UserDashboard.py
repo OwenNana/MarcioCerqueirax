@@ -1,6 +1,6 @@
 import streamlit as st
-import gspread
 import pandas as pd
+import gspread
 import json
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
@@ -34,100 +34,106 @@ if st.session_state["permissions"] != "user":
         st.error("⚠️ الصلاحية غير معروفة.")
     st.stop()
 
-# ===== جلب اسم المستخدم والمشرف من جوجل شيت =====
 username = st.session_state["username"]
+sheet_name = f"بيانات - {username}"
 spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
-admin_sheet = spreadsheet.worksheet("admin")
-users_df = pd.DataFrame(admin_sheet.get_all_records())
+worksheet = spreadsheet.worksheet(sheet_name)
+columns = worksheet.row_values(1)
 
-# العثور على صف المستخدم في جدول المستخدمين
-user_row = users_df[users_df["username"] == username].iloc[0]
-mentor_name = user_row["Mentor"]  # اسم المشرف من جدول المستخدمين
+# ===== تحقق من أن الأعمدة غير فارغة =====
+if not columns:
+    st.error("❌ لم يتم العثور على الأعمدة في ورقة البيانات.")
+    st.stop()
 
-# ===== إعداد الصفحة =====
-st.title(f"👋 أهلاً {username}!")  # عرض اسم المستخدم بعد "أهلاً"
-st.subheader(f"👤 مشرفك: {mentor_name}")  # عرض اسم المشرف التابع له
+# ===== دالة جلب البيانات من جوجل شيت =====
+def load_data():
+    data = worksheet.get_all_records()
+    df = pd.DataFrame(data)
+    return df
 
 # ===== تبويبات المستخدم =====
 tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع"])
 
 # ===== التبويب الأول: إدخال البيانات =====
 with tabs[0]:  # التأكد من أن التبويبات تم إنشاؤها بشكل صحيح
-    today = datetime.today().date()
-    allowed_dates = [today - timedelta(days=i) for i in range(7)]
-    date = st.date_input("📅 التاريخ", today)
+    st.title(f"👋 أهلاً {username}")  # عرض اسم المستخدم بعد "أهلاً"
+    
+    with st.form("daily_form"):
+        today = datetime.today().date()
+        allowed_dates = [today - timedelta(days=i) for i in range(7)]
+        date = st.date_input("📅 التاريخ", today)
 
-    if date not in allowed_dates:
-        st.warning("⚠️ يمكن تعبئة البيانات خلال أسبوع سابق من اليوم فقط.")
-
-    values = [date.strftime("%Y-%m-%d")]
-
-    # زيادة حجم الخط للعناوين (الأعمدة) في جميع التبويبات
-    # الأعمدة الخمسة الأولى
-    st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأولى</h3>", unsafe_allow_html=True)
-    options_1 = ["في المسجد جماعة", "في المنزل جماعة", "في المسجد منفرد", "في المنزل منفرد", "خارج الوقت"]
-    ratings_1 = {
-        "في المسجد جماعة": 5,
-        "في المنزل جماعة": 4,
-        "في المسجد منفرد": 3,
-        "في المنزل منفرد": 2,
-        "خارج الوقت": 0
-    }
-
-    for i, col in enumerate(columns[1:6]):
-        st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
-        rating = st.radio(col, options=options_1, index=0, key=col)
-        values.append(str(ratings_1[rating]))
-
-    # الأعمدة الخمسة التالية
-    st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الثانية</h3>", unsafe_allow_html=True)
-    options_2 = ["نعم", "ليس كاملاً", "لا"]
-    ratings_2 = {
-        "نعم": 5,
-        "ليس كاملاً": 3,
-        "لا": 0
-    }
-
-    for i, col in enumerate(columns[6:11]):
-        st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
-        rating = st.radio(col, options=options_2, index=0, key=col)
-        values.append(str(ratings_2[rating]))
-
-    # الأعمدة المتبقية
-    st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأخيرة</h3>", unsafe_allow_html=True)
-    options_3 = ["نعم", "لا"]
-    ratings_3 = {
-        "نعم": 3,
-        "لا": 0
-    }
-
-    for i, col in enumerate(columns[11:]):
-        st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
-        rating = st.radio(col, options=options_3, index=0, key=col)
-        values.append(str(ratings_3[rating]))
-
-    submit = st.form_submit_button("💾 حفظ")
-
-    if submit:
         if date not in allowed_dates:
-            st.error("❌ التاريخ غير صالح. لا يمكن حفظ البيانات لأكثر من أسبوع سابق فقط")
-        else:
-            all_dates = worksheet.col_values(1)
-            date_str = date.strftime("%Y-%m-%d")
-            try:
-                row_index = all_dates.index(date_str) + 1
-            except ValueError:
-                row_index = len(all_dates) + 1
-                worksheet.update_cell(row_index, 1, date_str)
-            for i, val in enumerate(values[1:], start=2):
-                worksheet.update_cell(row_index, i, val)
+            st.warning("⚠️ يمكن تعبئة البيانات خلال أسبوع سابق من اليوم فقط.")
 
-            # بعد الحفظ مباشرةً جلب البيانات الجديدة
-            st.cache_data.clear()  # تفريغ الذاكرة المخبأة
-            data = load_data()  # جلب البيانات الجديدة من جوجل شيت
+        values = [date.strftime("%Y-%m-%d")]
 
-            # عرض رسالة النجاح فقط
-            st.success("✅ تم الحفظ بنجاح والاتصال بقاعدة البيانات")
+        # زيادة حجم الخط للعناوين (الأعمدة) في جميع التبويبات
+        # الأعمدة الخمسة الأولى
+        st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأولى</h3>", unsafe_allow_html=True)
+        options_1 = ["في المسجد جماعة", "في المنزل جماعة", "في المسجد منفرد", "في المنزل منفرد", "خارج الوقت"]
+        ratings_1 = {
+            "في المسجد جماعة": 5,
+            "في المنزل جماعة": 4,
+            "في المسجد منفرد": 3,
+            "في المنزل منفرد": 2,
+            "خارج الوقت": 0
+        }
+
+        for i, col in enumerate(columns[1:6]):
+            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
+            rating = st.radio(col, options=options_1, index=0, key=col)
+            values.append(str(ratings_1[rating]))
+
+        # الأعمدة الخمسة التالية
+        st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الثانية</h3>", unsafe_allow_html=True)
+        options_2 = ["نعم", "ليس كاملاً", "لا"]
+        ratings_2 = {
+            "نعم": 5,
+            "ليس كاملاً": 3,
+            "لا": 0
+        }
+
+        for i, col in enumerate(columns[6:11]):
+            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
+            rating = st.radio(col, options=options_2, index=0, key=col)
+            values.append(str(ratings_2[rating]))
+
+        # الأعمدة المتبقية
+        st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأخيرة</h3>", unsafe_allow_html=True)
+        options_3 = ["نعم", "لا"]
+        ratings_3 = {
+            "نعم": 3,
+            "لا": 0
+        }
+
+        for i, col in enumerate(columns[11:]):
+            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)  # العنوان بخط أكبر
+            rating = st.radio(col, options=options_3, index=0, key=col)
+            values.append(str(ratings_3[rating]))
+
+        submit = st.form_submit_button("💾 حفظ")
+
+        if submit:
+            if date not in allowed_dates:
+                st.error("❌ التاريخ غير صالح. لا يمكن حفظ البيانات لأكثر من أسبوع سابق فقط")
+            else:
+                all_dates = worksheet.col_values(1)
+                date_str = date.strftime("%Y-%m-%d")
+                try:
+                    row_index = all_dates.index(date_str) + 1
+                except ValueError:
+                    row_index = len(all_dates) + 1
+                    worksheet.update_cell(row_index, 1, date_str)
+                for i, val in enumerate(values[1:], start=2):
+                    worksheet.update_cell(row_index, i, val)
+
+                # بعد الحفظ مباشرةً جلب البيانات الجديدة
+                st.cache_data.clear()  # تفريغ الذاكرة المخبأة
+                data = load_data()  # جلب البيانات الجديدة من جوجل شيت
+
+                # عرض رسالة النجاح فقط
+                st.success("✅ تم الحفظ بنجاح والاتصال بقاعدة البيانات")
 
 # ===== التبويب الثاني: تقارير المجموع =====
 with tabs[1]:  # التبويب الثاني
