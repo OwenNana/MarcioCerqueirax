@@ -120,7 +120,7 @@ merged_df = pd.concat(all_data, ignore_index=True)
 
 # ========== تبويب 1: تقرير إجمالي للمستخدمين ==========
 with tabs[0]:
-    st.subheader(" مجموع درجات كل مستخدم")
+    st.subheader("👤 مجموع درجات كل مستخدم")
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
@@ -130,9 +130,9 @@ with tabs[0]:
         grouped = grouped[cols]
     grouped = grouped.sort_values(by="المجموع", ascending=False)
     
-    # عرض اسم الشخص والمجموع بشكل واضح وكبير
+    # عرض اسم الشخص والمجموع بشكل واضح وكبير بلون أخضر داكن
     for index, row in grouped.iterrows():
-        st.markdown(f"### {index} : {row['المجموع']} درجة")
+        st.markdown(f"### <span style='color: #006400;'>{index} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
 
 # ========== تبويب 2: التقرير التجميعي ==========
 with tabs[1]:
