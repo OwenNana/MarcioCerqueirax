@@ -93,7 +93,7 @@ def show_chat():
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             chat_sheet.append_row([timestamp, username, mentor_name, new_msg])
             st.success("✅ تم إرسال الرسالة")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
@@ -118,7 +118,7 @@ with tabs[0]:
     # زر لفتح نافذة المحادثة من جديد
     if st.button("💬 الدردشة مع المشرف"):
         st.session_state["chat_opened"] = True
-        st.experimental_rerun()
+        st.rerun()
 
     with st.form("daily_form"):
         today = datetime.today().date()
