@@ -293,3 +293,62 @@ with tabs[1]:
     st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
     refresh_button("refresh_chat")
     show_chat()
+
+
+
+# ===== التبويب الثالث: تقارير المجموع =====
+with tabs[2]:
+    st.title("📊 مجموع البنود للفترة")
+    refresh_button("refresh_tab2")
+
+    st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>التقارير</h3>", unsafe_allow_html=True)
+
+    df = pd.DataFrame(worksheet.get_all_records())
+    df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+
+    if "البند" in df.columns and "المجموع" in df.columns:
+        df = df.dropna(subset=["البند", "المجموع"])
+
+    if "رقم التسلسل" in df.columns:
+        df = df.drop(columns=["رقم التسلسل"])
+
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input("من تاريخ", datetime.today().date() - timedelta(days=7))
+    with col2:
+        end_date = st.date_input("إلى تاريخ", datetime.today().date())
+
+    mask = (df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))
+    filtered = df[mask].drop(columns=["التاريخ"], errors="ignore")
+
+    if filtered.empty:
+        st.warning("⚠️ لا توجد بيانات في الفترة المحددة.")
+    else:
+        totals = filtered.sum(numeric_only=True)
+        total_score = totals.sum()
+
+        st.metric(label="📌 مجموعك الكلي لجميع البنود", value=int(total_score))
+
+        result_df = pd.DataFrame(totals, columns=["المجموع"])
+        result_df.index.name = "البند"
+        result_df = result_df.reset_index()
+        result_df = result_df.sort_values(by="المجموع", ascending=True)
+
+        result_df = result_df[["المجموع", "البند"]]
+        result_df["البند"] = result_df["البند"].apply(lambda x: f"<p style='color:#8B0000; text-align:center'>{x}</p>")
+        result_df["المجموع"] = result_df["المجموع"].apply(lambda x: f"<p style='color:#000080; text-align:center'>{x}</p>")
+
+        st.markdown(result_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+
+    
+    result_df = pd.DataFrame(totals, columns=["المجموع"])
+    result_df.index.name = "البند"
+    result_df = result_df.reset_index()
+    result_df = result_df.sort_values(by="المجموع", ascending=True)
+
+    result_df = result_df[["المجموع", "البند"]]
+    result_df["البند"] = result_df["البند"].apply(lambda x: f"<p style='color:#8B0000; text-align:center'>{x}</p>")
+    result_df["المجموع"] = result_df["المجموع"].apply(lambda x: f"<p style='color:#000080; text-align:center'>{x}</p>")
+
+    st.markdown(result_df.to_html(escape=False, index=False), unsafe_allow_html=True)
