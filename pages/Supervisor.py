@@ -239,10 +239,37 @@ with tabs[1]:
 # ===== تبويب 3: تجميعي الكل =====
 with tabs[2]:
     st.subheader("📋 تفاصيل الدرجات للجميع")
+
+    # زر جلب المعلومات من قاعدة البيانات
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_3"):
         st.cache_data.clear()
         st.rerun()
-    st.dataframe(grouped, use_container_width=True)
+
+    # ===== الاتصال بـ Google Sheets =====
+    SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
+    creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
+
+    # محاولة الاتصال بقاعدة البيانات
+    try:
+        client = gspread.authorize(creds)
+        spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
+        admin_sheet = spreadsheet.worksheet("admin")
+        chat_sheet = spreadsheet.worksheet("chat")
+        users_df = pd.DataFrame(admin_sheet.get_all_records())  # جلب البيانات من ورقة الأدمن
+
+    except Exception as e:
+        st.error(f"❌ حدث خطأ أثناء الاتصال بقاعدة البيانات. حاول مرة أخرى. التفاصيل: {e}")
+        st.markdown("""<script>
+            setTimeout(function() {
+                window.location.href = "/home";
+            }, 1000);
+        </script>""", unsafe_allow_html=True)
+        st.stop()
+
+    # الآن نعرض بيانات الجدول (grouped) مع عمود "full_name"
+    grouped["full_name"] = grouped.index.map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
+    st.dataframe(grouped[['full_name', 'المجموع']], use_container_width=True)
 
 # ===== تبويب 4: تجميعي بند =====
 with tabs[3]:
