@@ -70,6 +70,7 @@ supervisors_df = users_df[users_df["role"] == "supervisor"]
 st.subheader("➕ إنشاء حساب جديد")
 with st.form("create_user_form"):
     username = st.text_input("Username")
+    full_name = st.text_input("الاسم الكامل")  # حقل جديد لإدخال الاسم الكامل
     password = st.text_input("Password")
     role = "user"  # تم تثبيت الصلاحية على user فقط
 
@@ -80,8 +81,8 @@ with st.form("create_user_form"):
     create = st.form_submit_button("Create")
 
     if create:
-        if not username or not password or not mentor:
-            st.warning("يرجى إدخال اسم المستخدم وكلمة المرور واختيار المشرف")
+        if not username or not password or not mentor or not full_name:
+            st.warning("يرجى إدخال اسم المستخدم وكلمة المرور والاسم الكامل واختيار المشرف")
         elif username in users_df["username"].values:
             st.error("🚫 اسم المستخدم موجود مسبقًا")
         else:
@@ -89,7 +90,7 @@ with st.form("create_user_form"):
                 worksheet_name = f"بيانات - {username}"
                 worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows="1000", cols="30")
                 worksheet.insert_row(get_default_columns(), 1)
-                admin_sheet.append_row([username, password, worksheet_name, role, mentor])  # إضافة المشرف
+                admin_sheet.append_row([username, full_name, password, worksheet_name, role, mentor])  # إضافة الاسم الكامل
                 st.success("✅ تم إنشاء المستخدم والورقة بنجاح")
                 st.rerun()
             except Exception as e:
@@ -99,5 +100,5 @@ with st.form("create_user_form"):
 st.subheader("📋 قائمة المستخدمين")
 
 # عرض جميع المستخدمين مع الأعمدة المطلوبة فقط
-filtered_df = users_df[["username", "role", "Mentor"]]  # اختيار الأعمدة المطلوبة
+filtered_df = users_df[["username", "full_name", "role", "Mentor"]]  # إضافة "full_name" في العرض
 st.dataframe(filtered_df, use_container_width=True)
