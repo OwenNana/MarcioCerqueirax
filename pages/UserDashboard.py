@@ -52,6 +52,7 @@ except Exception:
 worksheet = spreadsheet.worksheet(sheet_name)
 columns = worksheet.row_values(1)
 
+
 # ===== جلب اسم المشرف =====
 admin_sheet = spreadsheet.worksheet("admin")
 admin_data = pd.DataFrame(admin_sheet.get_all_records())
@@ -60,6 +61,14 @@ mentor_name = admin_data.loc[admin_data["username"] == username, "Mentor"].value
 # جلب السوبر مشرف إن وجد
 sp_row = admin_data[(admin_data["username"] == mentor_name)]
 sp_name = sp_row["Mentor"].values[0] if not sp_row.empty else None
+
+
+
+# إضافة "full_name" إلى merged_df بناءً على "username"
+merged_df["full_name"] = merged_df["username"].map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
+
+
+
 
 if not columns:
     st.error("❌ لم يتم العثور على الأعمدة في ورقة البيانات.")
@@ -162,7 +171,7 @@ with tabs[0]:
     )
 
     # تصغير "أهلاً ... مجموعتك"
-    st.markdown(f"<h3 style='color: #0000FF; font-weight: bold; font-size: 24px;'>👋 أهلاً {username} | مجموعتك / {mentor_name}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='color: #0000FF; font-weight: bold; font-size: 24px;'>👋 أهلاً {full_name} | مجموعتك / {mentor_name}</h3>", unsafe_allow_html=True)
 
     # تصغير "المحاسبة الذاتية"
     st.markdown("<h4 style='color: #0000FF; font-weight: bold; font-size: 20px;'>📝 المحاسبة الذاتية</h4>", unsafe_allow_html=True)
