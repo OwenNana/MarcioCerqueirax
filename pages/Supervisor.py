@@ -37,11 +37,12 @@ except Exception:
     </script>""", unsafe_allow_html=True)
     st.stop()
 
+
 admin_sheet = spreadsheet.worksheet("admin")
 users_df = pd.DataFrame(admin_sheet.get_all_records())
 chat_sheet = spreadsheet.worksheet("chat")
 
-full_name = st.session_state.get("full_name")  # جلب الاسم الكامل من الجلسة
+username = st.session_state.get("username")
 
 # ===== إعداد الصفحة =====
 st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
@@ -59,34 +60,35 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title(f"👋 أهلاً {full_name}")  # عرض الاسم الكامل
+st.title(f"👋 أهلاً {st.session_state.get('full_name')}")
 
 # ===== تحديد المستخدمين المتاحين للمحادثة =====
 all_user_options = []
 
 if permissions == "sp":
-    my_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == full_name)]["full_name"].tolist()
-    all_user_options += [(s, "مشرف") for s in my_supervisors]
+    my_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
+    all_user_options += [(s, "مشرف") for s in my_supervisors]  # لا يتغير إلا إذا كان هناك تغيير آخر
 
 if permissions in ["supervisor", "sp"]:
-    assigned_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin([full_name] + [s for s, _ in all_user_options]))]
-    all_user_options += [(u, "مستخدم") for u in assigned_users["full_name"].tolist()]  # عرض الاسم الكامل
+    assigned_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin([username] + [s for s, _ in all_user_options]))]
+    all_user_options += [(u, "مستخدم") for u in assigned_users["username"].tolist()]
 
+# إضافة سوبر مشرفين (إن وُجدوا) إلى القائمة للدردشة معهم
 # ===== تحميل بيانات الطلاب لعرض التقارير =====
 if permissions == "supervisor":
-    filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == full_name)]
+    filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
 elif permissions == "sp":
-    supervised_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == full_name)]["full_name"].tolist()
+    supervised_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
     filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin(supervised_supervisors))]
 else:
     filtered_users = pd.DataFrame()
 
 all_data = []
 users_with_data = []
-all_usernames = filtered_users["full_name"].tolist()  # استخدام "full_name"
+all_usernames = filtered_users["username"].tolist()
 
 for _, user in filtered_users.iterrows():
-    user_name = user["full_name"]  # استخدام الاسم الكامل
+    user_name = user["username"]
     sheet_name = user["sheet_name"]
     try:
         user_ws = spreadsheet.worksheet(sheet_name)
@@ -109,14 +111,17 @@ merged_df = pd.concat(all_data, ignore_index=True)
 # ====== تبويبات الصفحة ======
 tabs = st.tabs([" تقرير إجمالي", "💬 المحادثات", "📋 تجميعي الكل", "📌 تجميعي بند", " تقرير فردي", "📈 رسوم بيانية"])
 
+
 # ===== دالة عرض المحادثة =====
+
 def show_chat_supervisor():
     st.subheader("💬 الدردشة")
 
     if "selected_user_display" not in st.session_state:
         st.session_state["selected_user_display"] = "اختر الشخص"
 
-    options_display = ["اختر الشخص"] + [f"{name} ({role})" for name, role in all_user_options]
+    options_display = ["اختر الشخص"] + [f"{full_name} ({role})" for full_name, role in all_user_options]
+
     selected_display = st.selectbox("اختر الشخص", options_display, key="selected_user_display")
 
     if selected_display != "اختر الشخص":
@@ -140,7 +145,7 @@ def show_chat_supervisor():
             # تحديث حالة القراءة
             unread_indexes = chat_data[
                 (chat_data["from"] == selected_user) &
-                (chat_data["to"] == full_name) &
+                (chat_data["to"] == username) &
                 (chat_data["read_by_receiver"].astype(str).str.strip() == "")
             ].index.tolist()
 
@@ -148,15 +153,15 @@ def show_chat_supervisor():
                 chat_sheet.update_cell(i + 2, 5, "✓")  # الصف +2 لأن الصف الأول للعناوين
 
             # عرض الرسائل
-            messages = chat_data[((chat_data["from"] == full_name) & (chat_data["to"] == selected_user)) |
-                                 ((chat_data["from"] == selected_user) & (chat_data["to"] == full_name))]
+            messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
+                                 ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
             messages = messages.sort_values(by="timestamp")
 
             if messages.empty:
                 st.info("💬 لا توجد رسائل بعد.")
             else:
                 for _, msg in messages.iterrows():
-                    if msg["from"] == full_name:
+                    if msg["from"] == username:
                         st.markdown(f"<p style='color:#8B0000'><b>‍ أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
                     else:
                         st.markdown(f"<p style='color:#000080'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
@@ -167,6 +172,7 @@ def show_chat_supervisor():
             if new_msg.strip():  # تأكد من أن الرسالة ليست فارغة
                 timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
                 chat_sheet.append_row([timestamp, full_name, selected_user, new_msg, ""])
+
         
                 # رسالة تم إرسالها
                 st.success("✅ تم إرسال الرسالة")
@@ -179,6 +185,12 @@ def show_chat_supervisor():
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
+
+
+
+
+
+
 # ===== تبويب 1: تقرير إجمالي =====
 with tabs[0]:
     # === تنبيه بالرسائل غير المقروءة ===
@@ -188,7 +200,7 @@ with tabs[0]:
     required_columns = ["to", "message", "read_by_receiver", "from"]
     if all(col in chat_data.columns for col in required_columns):
         unread_msgs = chat_data[
-            (chat_data["to"] == full_name) &
+            (chat_data["to"] == username) &
             (chat_data["message"].notna()) &
             (chat_data["read_by_receiver"].astype(str).str.strip() == "")
         ]
@@ -213,6 +225,12 @@ with tabs[0]:
 # ===== تبويب 2: المحادثات =====
 with tabs[1]:
     show_chat_supervisor()
+
+
+
+
+
+
 
 # ===== تبويب 3: تجميعي الكل =====
 with tabs[2]:
