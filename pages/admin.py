@@ -4,6 +4,11 @@ import pandas as pd
 import json
 from google.oauth2.service_account import Credentials
 
+# ===== التحقق من تسجيل الدخول =====
+if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
+    st.warning("🔐 يجب تسجيل الدخول أولاً")
+    st.switch_page("home.py")
+
 # ===== إعداد صفحة Streamlit =====
 st.set_page_config(layout="wide", page_title="⚙️ إعدادات المستخدم")
 
@@ -26,7 +31,7 @@ if user_row.empty:
     st.error("⚠️ لم يتم العثور على المستخدم.")
     st.stop()
 
-# ===== عرض العنوان الجديد =====
+# ===== عرض العنوان =====
 st.title(f"👋 أهلاً {username}")
 
 row_index = user_row.index[0] + 2  # +2 لأن get_all_records يبدأ من الصف 2
