@@ -101,8 +101,14 @@ tabs = st.tabs([" تقرير إجمالي", "💬 المحادثات", "📋 ت�
 # ===== دالة عرض المحادثة =====
 def show_chat_supervisor():
     st.subheader("💬 الدردشة")
-    options_display = [f"{name} ({role})" for name, role in all_user_options]
+    options_display = ["اختر الشخص"] + [f"{name} ({role})" for name, role in all_user_options]
     selected_display = st.selectbox("اختر الشخص", options_display)
+
+    if selected_display != "اختر الشخص":
+        selected_user = selected_display.split(" (")[0]
+    
+    # ... باقي الكود هنا: استخراج الرسائل، تحديث حالة القراءة، عرض المحادثة ...
+
     selected_user = selected_display.split(" (")[0]
 
     chat_data = pd.DataFrame(chat_sheet.get_all_records())
