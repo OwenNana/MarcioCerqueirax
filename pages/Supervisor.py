@@ -84,7 +84,7 @@ def show_chat_supervisor():
             else:
                 st.markdown(f"<p style='color:#000080'><b>🙋‍♂️ {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
-    new_msg = st.text_area("✏️ اكتب رسالتك", height=50, key="chat_message")
+    new_msg = st.text_area("✏️ اكتب رسالتك", height=100, key="chat_message")
     if st.button("📨 إرسال الرسالة"):
         if new_msg.strip():
             timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")  # بتوقيت السعودية
