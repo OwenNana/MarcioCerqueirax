@@ -158,7 +158,7 @@ def show_chat_supervisor():
             if new_msg.strip():
                 timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
                 chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
-                st.session_state["chat_message"] = ""
+                st.experimental_rerun()
                 st.success("✅ تم إرسال الرسالة")
                 st.rerun()
             else:
