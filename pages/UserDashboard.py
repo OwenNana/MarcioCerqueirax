@@ -31,7 +31,7 @@ if st.session_state["permissions"] != "user":
         st.warning("👤 تم تسجيل الدخول كمشرف، سيتم تحويلك للتقارير...")
         st.switch_page("pages/Supervisor.py")
     else:
-        st.error("⚠️ الصلاحية غير معروفة.")
+        st.error("⚠️ صلاحية غير معروفة.")
     st.stop()
 
 username = st.session_state["username"]
@@ -40,10 +40,21 @@ spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
 worksheet = spreadsheet.worksheet(sheet_name)
 columns = worksheet.row_values(1)
 
+# ===== جلب اسم المشرف =====
+admin_sheet = spreadsheet.worksheet("admin")
+admin_data = pd.DataFrame(admin_sheet.get_all_records())
+mentor_name = admin_data.loc[admin_data["username"] == username, "Mentor"].values[0]
+
 # ===== تحقق من أن الأعمدة غير فارغة =====
 if not columns:
     st.error("❌ لم يتم العثور على الأعمدة في ورقة البيانات.")
     st.stop()
+
+# ===== دالة زر التحديث =====
+def refresh_button(key):
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key=key):
+        st.cache_data.clear()
+        st.rerun()
 
 # ===== دالة جلب البيانات من جوجل شيت =====
 def load_data():
@@ -56,12 +67,8 @@ tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المج�
 
 # ===== التبويب الأول: إدخال البيانات =====
 with tabs[0]:
-    st.title(f"👋 أهلاً {username}")
-    
-    # زر تحديث البيانات
-    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab1"):
-        st.cache_data.clear()
-        st.rerun()
+    st.title(f"👋 أهلاً {username}  |  🧑‍🏫 مجموعتك: {mentor_name}")
+    refresh_button("refresh_tab1")
 
     with st.form("daily_form"):
         today = datetime.today().date()
@@ -113,7 +120,7 @@ with tabs[0]:
 
         for i, col in enumerate(columns[11:]):
             st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)
-            rating = st.radio(col, options=options_3, index=0, key=col)
+            rating = st.radio(col, options_3, index=0, key=col)
             values.append(str(ratings_3[rating]))
 
         submit = st.form_submit_button("💾 حفظ")
@@ -139,11 +146,7 @@ with tabs[0]:
 # ===== التبويب الثاني: تقارير المجموع =====
 with tabs[1]:
     st.title("📊 مجموع البنود للفترة")
-    
-    # زر تحديث البيانات
-    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab2"):
-        st.cache_data.clear()
-        st.rerun()
+    refresh_button("refresh_tab2")
 
     st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>التقارير</h3>", unsafe_allow_html=True)
 
