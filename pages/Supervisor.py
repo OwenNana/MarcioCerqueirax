@@ -54,10 +54,10 @@ st.markdown("""
 
 st.title("📊 تقارير المشرف")
 
-# ===== تحديد الفترة الزمنية =====
-st.sidebar.header("📅 تحديد الفترة")
-start_date = st.sidebar.date_input("من تاريخ", datetime.today())
-end_date = st.sidebar.date_input("إلى تاريخ", datetime.today())
+# ===== تحديد الفترة الزمنية (أعلى الصفحة) =====
+st.subheader("📅 تحديد الفترة الزمنية")
+start_date = st.date_input("من تاريخ", datetime.today())
+end_date = st.date_input("إلى تاريخ", datetime.today())
 
 if start_date > end_date:
     st.error("⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
