@@ -25,16 +25,56 @@ SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/au
 creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
 creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
 client = gspread.authorize(creds)
-
-# ===== دالة زر التحديث =====
-def refresh_button(key):
-    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key=key):
-        st.cache_data.clear()
-        st.rerun()
-
 # ===== إعداد الصفحة =====
 st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
 
+st.title("📊 تقارير المشرف")
+
+# ===== تحميل بيانات المستخدمين من admin sheet =====
+admin_sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY").worksheet("admin")
+users_df = pd.DataFrame(admin_sheet.get_all_records())
+
+# ===== تحديد اسم المشرف الحالي =====
+username = st.session_state.get("username")
+
+# ===== المستخدمين تحت الإشراف =====
+if permissions == "supervisor":
+    assigned_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]["username"].tolist()
+elif permissions == "sp":
+    my_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
+    assigned_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin(my_supervisors))]["username"].tolist()
+else:
+    assigned_users = []
+
+assigned_users.sort()
+# ===== دالة عرض المحادثة =====
+def show_chat_supervisor():
+    chat_sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY").worksheet("chat")
+    chat_data = pd.DataFrame(chat_sheet.get_all_records())
+
+    st.markdown("### 💬 الدردشة مع أحد الطلاب")
+    selected_user = st.selectbox("اختر الطالب", assigned_users)
+
+    if selected_user:
+        messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
+                             ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
+
+        messages = messages.sort_values(by="timestamp")
+        for _, msg in messages.iterrows():
+            sender = "👨‍🏫 أنت" if msg["from"] == username else f"🙋‍♂️ {msg['from']}"
+            st.markdown(f"**{sender}**: {msg['message']}")
+
+        new_msg = st.text_input("✏️ اكتب ردك للطالب", key="msg_input")
+        if st.button("📨 إرسال الرسالة", key="send_msg"):
+            if new_msg.strip():
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                chat_sheet.append_row([timestamp, username, selected_user, new_msg])
+                st.success("✅ تم إرسال الرسالة")
+                st.experimental_rerun()
+            else:
+                st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+
+# ===== تنسيقات الصفحة =====
 st.markdown("""
     <style>
     html, body, [class*="css"]  {
@@ -58,8 +98,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📊 تقارير المشرف")
-
 # ===== تحديد الفترة الزمنية =====
 st.subheader("📅 تحديد الفترة الزمنية")
 start_date = st.date_input("من تاريخ", datetime.today())
@@ -68,15 +106,10 @@ if start_date > end_date:
     st.error("⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
     st.stop()
 
-refresh_button("refresh_global")
-
-# ===== تحميل بيانات المستخدمين من admin sheet =====
-admin_sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY").worksheet("admin")
-users_df = pd.DataFrame(admin_sheet.get_all_records())
-
-# ===== تحديد اسم المشرف الحالي =====
-username = st.session_state.get("username")
-
+# ===== زر التحديث العام =====
+if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_global"):
+    st.cache_data.clear()
+    st.rerun()
 # ===== تصفية المستخدمين بحسب الصلاحية =====
 if permissions == "supervisor":
     filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
@@ -90,7 +123,6 @@ if filtered_users.empty:
 
 # ===== تبويبات التقارير =====
 tabs = st.tabs(["👤 تقرير إجمالي للمستخدمين", "📋 تجميعي الكل", "📌 تجميعي بند", "👤 تقرير فردي", "📈 رسوم بيانية"])
-
 # ===== جلب البيانات لكل طالب =====
 all_data = []
 users_with_data = []
@@ -127,12 +159,12 @@ if not all_data:
     st.stop()
 
 merged_df = pd.concat(all_data, ignore_index=True)
-
 # ========== تبويب 1: تقرير إجمالي ==========
 with tabs[0]:
     st.subheader("👤 مجموع درجات كل مستخدم")
-    refresh_button("refresh_tab1")
-
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab1"):
+        st.cache_data.clear()
+        st.rerun()
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
@@ -148,13 +180,17 @@ with tabs[0]:
 # ========== تبويب 2: تجميعي الكل ==========
 with tabs[1]:
     st.subheader("📋 مجموع الدرجات لكل مستخدم")
-    refresh_button("refresh_tab2")
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab2"):
+        st.cache_data.clear()
+        st.rerun()
     st.dataframe(grouped, use_container_width=True)
 
 # ========== تبويب 3: تجميعي بند ==========
 with tabs[2]:
     st.subheader("📌 مجموع بند معين لكل المستخدمين")
-    refresh_button("refresh_tab3")
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab3"):
+        st.cache_data.clear()
+        st.rerun()
     all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username"]]
     selected_activity = st.selectbox("اختر البند", all_columns)
     activity_sum = merged_df.groupby("username")[selected_activity].sum().sort_values(ascending=True)
@@ -164,11 +200,12 @@ with tabs[2]:
         activity_sum[user] = 0
 
     st.dataframe(activity_sum, use_container_width=True)
-
 # ========== تبويب 4: تقرير فردي ==========
 with tabs[3]:
     st.subheader("👤 تقرير تفصيلي لمستخدم")
-    refresh_button("refresh_tab4")
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab4"):
+        st.cache_data.clear()
+        st.rerun()
     selected_user = st.selectbox("اختر المستخدم", merged_df["username"].unique())
     user_df = merged_df[merged_df["username"] == selected_user].sort_values("التاريخ")
     st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
@@ -176,7 +213,9 @@ with tabs[3]:
 # ========== تبويب 5: رسوم بيانية ==========
 with tabs[4]:
     st.subheader("📈 رسوم بيانية")
-    refresh_button("refresh_tab5")
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_tab5"):
+        st.cache_data.clear()
+        st.rerun()
     pie_fig = go.Figure(go.Pie(
         labels=grouped.index,
         values=grouped["المجموع"],
