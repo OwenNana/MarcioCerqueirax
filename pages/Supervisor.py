@@ -120,7 +120,7 @@ merged_df = pd.concat(all_data, ignore_index=True)
 
 # ========== تبويب 1: تقرير إجمالي للمستخدمين ==========
 with tabs[0]:
-    st.subheader("👤 مجموع درجات كل مستخدم")
+    st.subheader(" مجموع درجات كل مستخدم")
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
