@@ -60,23 +60,34 @@ if not st.session_state["authenticated"]:
             else:
                 st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
 
-    # ===== منع اقتراح كلمة المرور التلقائي على iPhone =====
+    # ===== سكربت لمنع اقتراح كلمة المرور على iPhone =====
     st.markdown("""
         <script>
-        setTimeout(() => {
-            const userInput = window.parent.document.querySelector('input#username_input');
-            const passInput = window.parent.document.querySelector('input#password_input');
+        setTimeout(function() {
+            const frames = window.parent.document.querySelectorAll('iframe');
 
-            if (userInput) {
-                userInput.setAttribute("autocomplete", "off");
-                userInput.setAttribute("name", "no-username");
-            }
+            frames.forEach(frame => {
+                try {
+                    const doc = frame.contentDocument || frame.contentWindow.document;
+                    const userInput = doc.querySelector('input[type="text"]');
+                    const passInput = doc.querySelector('input[type="password"]');
 
-            if (passInput) {
-                passInput.setAttribute("autocomplete", "new-password");
-                passInput.setAttribute("name", "no-password");
-            }
-        }, 500);
+                    if (userInput) {
+                        userInput.setAttribute("autocomplete", "off");
+                        userInput.setAttribute("name", "username-fake");
+                        userInput.setAttribute("id", "username-fake");
+                    }
+
+                    if (passInput) {
+                        passInput.setAttribute("autocomplete", "new-password");
+                        passInput.setAttribute("name", "password-fake");
+                        passInput.setAttribute("id", "password-fake");
+                    }
+                } catch (e) {
+                    // تجاهل الأخطاء الناتجة من iframe بسبب cross-origin
+                }
+            });
+        }, 1000);
         </script>
     """, unsafe_allow_html=True)
 
