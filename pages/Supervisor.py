@@ -80,6 +80,8 @@ tabs = st.tabs(["📋 تجميعي الكل", "📌 تجميعي بند", "👤 
 
 # ====== تجميع البيانات من جميع أوراق المستخدمين ======
 all_data = []
+all_usernames = []
+
 for user in users:
     username = user.get("username")
     sheet_name = user.get("sheet_name")
@@ -94,14 +96,34 @@ for user in users:
             df = df[(df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))]
             df.insert(0, "username", username)
             all_data.append(df)
+            all_usernames.append(username)
     except Exception as e:
         st.warning(f"⚠️ حدث خطأ أثناء قراءة بيانات {username}: {e}")
+
+# ===== إضافة بيانات المستخدمين الذين لم يعبؤوا بياناتهم =====
+all_usernames_set = set(all_usernames)
+merged_usernames_set = set(merged_df["username"]) if 'merged_df' in locals() else set()
+
+# الأشخاص الذين لم يعبئوا البيانات في فترة التواريخ المحددة
+missing_usernames = all_usernames_set - merged_usernames_set
+missing_data = []
+
+# إضافة السطور الفارغة للأشخاص الذين لم يعبؤوا البيانات
+for username in missing_usernames:
+    empty_row = {"username": username, "التاريخ": None}
+    for column in df.columns:
+        if column != "username" and column != "التاريخ":
+            empty_row[column] = None
+    missing_data.append(empty_row)
+
+# دمج بيانات الأشخاص الذين لم يعبؤوا البيانات مع البيانات المدمجة
+if missing_data:
+    missing_df = pd.DataFrame(missing_data)
+    merged_df = pd.concat([merged_df, missing_df], ignore_index=True)
 
 if not all_data:
     st.info("ℹ️ لا توجد بيانات في الفترة المحددة.")
     st.stop()
-
-merged_df = pd.concat(all_data, ignore_index=True)
 
 # ========== تبويب 1: التقرير التجميعي ==========
 with tabs[0]:
