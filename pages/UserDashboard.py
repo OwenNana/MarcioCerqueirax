@@ -45,6 +45,10 @@ admin_sheet = spreadsheet.worksheet("admin")
 admin_data = pd.DataFrame(admin_sheet.get_all_records())
 mentor_name = admin_data.loc[admin_data["username"] == username, "Mentor"].values[0]
 
+# جلب السوبر مشرف إن وجد
+sp_row = admin_data[(admin_data["username"] == mentor_name)]
+sp_name = sp_row["Mentor"].values[0] if not sp_row.empty else None
+
 if not columns:
     st.error("❌ لم يتم العثور على الأعمدة في ورقة البيانات.")
     st.stop()
@@ -61,35 +65,41 @@ def load_data():
 
 # ===== دالة عرض المحادثة =====
 def show_chat():
-    st.markdown("### 💬 محادثتك مع المشرف")
+    st.markdown("### 💬 المحادثة مع المشرف أو السوبر مشرف")
+
+    # تحديد الجهة: مشرف أو سوبر مشرف
+    options = [mentor_name]
+    if sp_name:
+        options.append(sp_name)
+
+    selected_mentor = st.selectbox("📨 اختر الشخص الذي ترغب بمراسلته", options, index=0, format_func=lambda x: f"🧑‍🏫 {x}")
+
     chat_sheet = spreadsheet.worksheet("chat")
     raw_data = chat_sheet.get_all_records()
-
-    if not raw_data:
-        chat_data = pd.DataFrame(columns=["timestamp", "from", "to", "message"])
-    else:
-        chat_data = pd.DataFrame(raw_data)
+    chat_data = pd.DataFrame(raw_data) if raw_data else pd.DataFrame(columns=["timestamp", "from", "to", "message"])
 
     if not {"from", "to", "message", "timestamp"}.issubset(chat_data.columns):
         st.warning("⚠️ لم يتم العثور على الأعمدة الصحيحة في ورقة الدردشة.")
         return
 
-    messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == mentor_name)) |
-                         ((chat_data["from"] == mentor_name) & (chat_data["to"] == username))]
-
+    messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_mentor)) |
+                         ((chat_data["from"] == selected_mentor) & (chat_data["to"] == username))]
     messages = messages.sort_values(by="timestamp")
+
     if messages.empty:
         st.info("💬 لا توجد رسائل حالياً.")
     else:
         for _, msg in messages.iterrows():
-            sender = "🧑‍🏫 مشرفك" if msg["from"] == mentor_name else "🙋‍♂️ أنت"
-            st.markdown(f"**{sender}**: {msg['message']}")
+            if msg["from"] == username:
+                st.markdown(f"<p style='color:#000080'><b>🙋‍♂️ أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<p style='color:#8B0000'><b>🧑‍🏫 {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
-    new_msg = st.text_input("✏️ اكتب رسالتك لمشرفك هنا")
+    new_msg = st.text_area("✏️ اكتب رسالتك هنا", height=100)
     if st.button("📨 إرسال الرسالة"):
         if new_msg.strip():
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            chat_sheet.append_row([timestamp, username, mentor_name, new_msg])
+            chat_sheet.append_row([timestamp, username, selected_mentor, new_msg])
             st.success("✅ تم إرسال الرسالة")
             st.rerun()
         else:
@@ -190,7 +200,6 @@ with tabs[2]:
 
     df = pd.DataFrame(worksheet.get_all_records())
     df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
-
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
     if "البند" in df.columns and "المجموع" in df.columns:
