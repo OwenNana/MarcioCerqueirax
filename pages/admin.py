@@ -32,7 +32,8 @@ if user_row.empty:
     st.stop()
 
 # ===== عرض العنوان =====
-st.title(f"👋 أهلاً {username}")
+full_name = st.session_state.get("full_name")  # جلب الاسم الكامل من الجلسة
+st.title(f"👋 أهلاً {full_name}")  # عرض الاسم الكامل بدلاً من اسم المستخدم
 
 row_index = user_row.index[0] + 2  # +2 لأن get_all_records يبدأ من الصف 2
 
