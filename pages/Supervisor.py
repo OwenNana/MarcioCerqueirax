@@ -113,6 +113,9 @@ tabs = st.tabs([" تقرير إجمالي", "💬 المحادثات", "📋 ت�
 
 
 # ===== دالة عرض المحادثة =====
+
+
+
 def show_chat_supervisor():
     st.subheader("💬 الدردشة")
 
@@ -138,7 +141,7 @@ def show_chat_supervisor():
             st.warning(f"⚠️ الأعمدة المطلوبة غير موجودة في ورقة الدردشة. الأعمدة الموجودة: {chat_data.columns}")
             return
 
-        # تحقق من أن الأعمدة تحتوي على بيانات صالحة قبل استخدامها
+        # تحقق من أن الأعمدة تحتوي على بيانات صالحة
         if chat_data["to"].isna().all() or chat_data["message"].isna().all():
             st.info("💬 لا توجد محادثات سابقة مع هذا الشخص.")
             return
@@ -177,7 +180,10 @@ def show_chat_supervisor():
                 timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
                 chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
         
+                # رسالة تم إرسالها
                 st.success("✅ تم إرسال الرسالة")
+
+                # إعادة تحميل الصفحة بعد الإرسال
                 st.rerun()
 
                 # مسح النص في حقل النص
@@ -185,28 +191,25 @@ def show_chat_supervisor():
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
 
-
-
-
-
-
-
-
-
-
 # ===== تبويب 1: تقرير إجمالي =====
 with tabs[0]:
     # === تنبيه بالرسائل غير المقروءة ===
     chat_data = pd.DataFrame(chat_sheet.get_all_records())
-    unread_msgs = chat_data[
-        (chat_data["to"] == username) &
-        (chat_data["message"].notna()) &
-        (chat_data["read_by_receiver"].astype(str).str.strip() == "")
-    ]
-    senders = unread_msgs["from"].unique().tolist()
-    if senders:
-        sender_list = "، ".join(senders)
-        st.markdown(f"<p style='color:red; font-weight:bold;'>يوجد لديك عدد دردشات لم تطلع عليها من ({sender_list})</p>", unsafe_allow_html=True)
+    
+    # تحقق من وجود الأعمدة المطلوبة
+    required_columns = ["to", "message", "read_by_receiver", "from"]
+    if all(col in chat_data.columns for col in required_columns):
+        unread_msgs = chat_data[
+            (chat_data["to"] == username) &
+            (chat_data["message"].notna()) &
+            (chat_data["read_by_receiver"].astype(str).str.strip() == "")
+        ]
+        senders = unread_msgs["from"].unique().tolist()
+        if senders:
+            sender_list = "، ".join(senders)
+            st.markdown(f"<p style='color:red; font-weight:bold;'>يوجد لديك عدد دردشات لم تطلع عليها من ({sender_list})</p>", unsafe_allow_html=True)
+    else:
+        st.warning("⚠️ تنسيق بيانات المحادثة غير صحيح. تأكد من وجود الأعمدة: 'to', 'message', 'read_by_receiver', 'from'.")
 
     st.subheader(" مجموع درجات كل مستخدم")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_2"):
@@ -222,6 +225,12 @@ with tabs[0]:
 # ===== تبويب 2: المحادثات =====
 with tabs[1]:
     show_chat_supervisor()
+
+
+
+
+
+
 
 # ===== تبويب 3: تجميعي الكل =====
 with tabs[2]:
