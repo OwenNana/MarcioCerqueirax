@@ -44,7 +44,7 @@ if not st.session_state["authenticated"]:
                 st.success("✅ تم تسجيل الدخول")
 
                 # إعادة التوجيه بناءً على الصلاحية
-                if st.session_state["permissions"] == "supervisor":
+                if st.session_state["permissions"] in ["supervisor", "sp"]:
                     st.switch_page("pages/Supervisor.py")
                 elif st.session_state["permissions"] == "admin":
                     st.switch_page("pages/AdminDashboard.py")
