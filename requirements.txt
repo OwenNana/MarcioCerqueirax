@@ -1,5 +1,7 @@
-plotly
+streamlit
 gspread
 oauth2client
-streamlit
+pandas
+plotly
 gunicorn
+hijri-converter
