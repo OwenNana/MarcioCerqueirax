@@ -71,10 +71,12 @@ def show_chat_supervisor():
         st.info("💬 لا توجد رسائل بعد.")
     else:
         for _, msg in messages.iterrows():
-            sender = "👨‍🏫 أنت" if msg["from"] == username else f"🙋‍♂️ {msg['from']}"
-            st.markdown(f"**{sender}**: {msg['message']}")
+            if msg["from"] == username:
+                st.markdown(f"<p style='color:#8B0000'><b>👨‍🏫 أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<p style='color:#000080'><b>🙋‍♂️ {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
 
-    new_msg = st.text_input("✏️ اكتب رسالتك للطالب")
+    new_msg = st.text_area("✏️ اكتب رسالتك للطالب", height=100)
     if st.button("📨 إرسال الرسالة"):
         if new_msg.strip():
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -87,10 +89,9 @@ def show_chat_supervisor():
 # ===== التبويبات =====
 tabs = st.tabs(["💬 المحادثات", "👤 تقرير إجمالي", "📋 تجميعي الكل", "📌 تجميعي بند", "👤 تقرير فردي", "📈 رسوم بيانية"])
 
-# ===== تبويب المحادثات =====
 with tabs[0]:
     show_chat_supervisor()
-# ===== تحديد الفترة الزمنية (داخل التبويبات) =====
+# ===== تبويب 2: تقرير إجمالي =====
 with tabs[1]:
     st.subheader("👤 مجموع درجات كل مستخدم")
     start_date = st.date_input("من تاريخ", datetime.today(), key="start_tab1")
@@ -102,7 +103,6 @@ with tabs[1]:
         st.cache_data.clear()
         st.rerun()
 
-    # ===== تصفية المستخدمين حسب الصلاحيات =====
     if permissions == "supervisor":
         filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
     elif permissions == "sp":
@@ -148,7 +148,6 @@ with tabs[1]:
         st.stop()
 
     merged_df = pd.concat(all_data, ignore_index=True)
-
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
@@ -157,6 +156,7 @@ with tabs[1]:
         cols.insert(0, cols.pop(cols.index("المجموع")))
         grouped = grouped[cols]
     grouped = grouped.sort_values(by="المجموع", ascending=True)
+
     for index, row in grouped.iterrows():
         st.markdown(f"### <span style='color: #006400;'>{index} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
 
