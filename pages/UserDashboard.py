@@ -146,6 +146,13 @@ tabs = st.tabs(["📝 إدخال البيانات", "💬 المحادثات", "
 # ===== التبويب الأول: إدخال البيانات =====
 with tabs[0]:
 
+
+
+    st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
+    refresh_button("refresh_chat")
+    show_chat()
+
+
     st.markdown(
         """
         <style>
@@ -275,9 +282,6 @@ with tabs[0]:
                 st.cache_data.clear()
                 data = load_data()
                 st.success("✅ تم الحفظ بنجاح والاتصال بقاعدة البيانات")
-st.title(f"👋 أهلاً {username} |  مجموعتك / {mentor_name}")
-    refresh_button("refresh_chat")
-    show_chat()
 
 # ===== التبويب الثاني: المحادثة =====
 with tabs[1]:
