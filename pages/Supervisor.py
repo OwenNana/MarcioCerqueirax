@@ -26,6 +26,12 @@ creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
 creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
 client = gspread.authorize(creds)
 
+# ===== دالة زر التحديث =====
+def refresh_button(key):
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key=key):
+        st.cache_data.clear()
+        st.rerun()
+
 # ===== إعداد الصفحة =====
 st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
 
@@ -62,6 +68,8 @@ if start_date > end_date:
     st.error("⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
     st.stop()
 
+refresh_button("refresh_global")
+
 # ===== تحميل بيانات المستخدمين من admin sheet =====
 admin_sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY").worksheet("admin")
 users_df = pd.DataFrame(admin_sheet.get_all_records())
@@ -73,7 +81,6 @@ username = st.session_state.get("username")
 if permissions == "supervisor":
     filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
 elif permissions == "sp":
-    # حدد أسماء المشرفين الذين Mentor لهم هو السوبر مشرف الحالي
     supervised_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
     filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin(supervised_supervisors))]
 
@@ -124,6 +131,8 @@ merged_df = pd.concat(all_data, ignore_index=True)
 # ========== تبويب 1: تقرير إجمالي ==========
 with tabs[0]:
     st.subheader("👤 مجموع درجات كل مستخدم")
+    refresh_button("refresh_tab1")
+
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
@@ -139,11 +148,13 @@ with tabs[0]:
 # ========== تبويب 2: تجميعي الكل ==========
 with tabs[1]:
     st.subheader("📋 مجموع الدرجات لكل مستخدم")
+    refresh_button("refresh_tab2")
     st.dataframe(grouped, use_container_width=True)
 
 # ========== تبويب 3: تجميعي بند ==========
 with tabs[2]:
     st.subheader("📌 مجموع بند معين لكل المستخدمين")
+    refresh_button("refresh_tab3")
     all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username"]]
     selected_activity = st.selectbox("اختر البند", all_columns)
     activity_sum = merged_df.groupby("username")[selected_activity].sum().sort_values(ascending=True)
@@ -157,6 +168,7 @@ with tabs[2]:
 # ========== تبويب 4: تقرير فردي ==========
 with tabs[3]:
     st.subheader("👤 تقرير تفصيلي لمستخدم")
+    refresh_button("refresh_tab4")
     selected_user = st.selectbox("اختر المستخدم", merged_df["username"].unique())
     user_df = merged_df[merged_df["username"] == selected_user].sort_values("التاريخ")
     st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
@@ -164,6 +176,7 @@ with tabs[3]:
 # ========== تبويب 5: رسوم بيانية ==========
 with tabs[4]:
     st.subheader("📈 رسوم بيانية")
+    refresh_button("refresh_tab5")
     pie_fig = go.Figure(go.Pie(
         labels=grouped.index,
         values=grouped["المجموع"],
