@@ -274,15 +274,28 @@ with tabs[2]:
 # ===== تبويب 4: تجميعي بند =====
 with tabs[3]:
     st.subheader("📌 مجموع بند لمستخدم")
+    
+    # زر جلب المعلومات من قاعدة البيانات
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_4"):
         st.cache_data.clear()
         st.rerun()
-    all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username"]]
+
+    # إضافة "full_name" إلى merged_df بناءً على "username"
+    merged_df["full_name"] = merged_df["username"].map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
+
+    # عرض البند الذي سيتم حسابه
+    all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username", "full_name"]]
     selected_activity = st.selectbox("اختر البند", all_columns)
-    activity_sum = merged_df.groupby("username")[selected_activity].sum().sort_values(ascending=True)
+
+    # حساب مجموع النشاط
+    activity_sum = merged_df.groupby("full_name")[selected_activity].sum().sort_values(ascending=True)
+
+    # إضافة المستخدمين الذين ليس لديهم بيانات
     missing_users = set(all_usernames) - set(users_with_data)
     for user in missing_users:
         activity_sum[user] = 0
+
+    # عرض البيانات مع "الاسم الكامل" في activity_sum
     st.dataframe(activity_sum, use_container_width=True)
 
 # ===== تبويب 5: تقرير فردي =====
