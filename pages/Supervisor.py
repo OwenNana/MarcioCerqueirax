@@ -1,24 +1,15 @@
 import streamlit as st
-import gspread
 import pandas as pd
+import gspread
 import json
 from google.oauth2.service_account import Credentials
-from datetime import datetime
-import plotly.graph_objects as go
+from datetime import datetime, timedelta
+from hijri_converter import Hijri, Gregorian
 
-# ===== التحقق من تسجيل الدخول =====
+
+# ===== إعادة التوجيه إلى صفحة تسجيل الدخول إذا لم يتم تسجيل الدخول =====
 if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
-    st.warning("🔐 يجب تسجيل الدخول أولاً")
     st.switch_page("home.py")
-
-permissions = st.session_state.get("permissions")
-if permissions not in ["supervisor", "sp"]:
-    if permissions == "admin":
-        st.switch_page("pages/AdminDashboard.py")
-    elif permissions == "user":
-        st.switch_page("pages/UserDashboard.py")
-    else:
-        st.switch_page("home.py")
 
 # ===== الاتصال بـ Google Sheets =====
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -26,6 +17,27 @@ creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
 creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
 client = gspread.authorize(creds)
 
+# ===== إعداد الصفحة =====
+st.set_page_config(page_title="تقييم اليوم", page_icon="📋", layout="wide")
+
+# ===== تحقق من صلاحية المستخدم =====
+if "username" not in st.session_state or "sheet_url" not in st.session_state:
+    st.error("❌ يجب تسجيل الدخول أولاً.")
+    st.stop()
+
+if st.session_state["permissions"] != "user":
+    if st.session_state["permissions"] == "admin":
+        st.warning(" تم تسجيل الدخول كأدمن، سيتم تحويلك للوحة التحكم...")
+        st.switch_page("pages/AdminDashboard.py")
+    elif st.session_state["permissions"] in ["supervisor", "sp"]:
+        st.warning(" تم تسجيل الدخول كمشرف، سيتم تحويلك للتقارير...")
+        st.switch_page("pages/Supervisor.py")
+    else:
+        st.error("⚠️ صلاحية غير معروفة.")
+    st.stop()
+
+username = st.session_state["username"]
+sheet_name = f"بيانات - {username}"
 try:
     spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
 except Exception:
@@ -37,170 +49,305 @@ except Exception:
     </script>""", unsafe_allow_html=True)
     st.stop()
 
+worksheet = spreadsheet.worksheet(sheet_name)
+columns = worksheet.row_values(1)
 
+# ===== جلب اسم المشرف =====
 admin_sheet = spreadsheet.worksheet("admin")
-users_df = pd.DataFrame(admin_sheet.get_all_records())
-chat_sheet = spreadsheet.worksheet("chat")
+admin_data = pd.DataFrame(admin_sheet.get_all_records())
+mentor_name = admin_data.loc[admin_data["username"] == username, "Mentor"].values[0]
 
-username = st.session_state.get("username")
+# جلب السوبر مشرف إن وجد
+sp_row = admin_data[(admin_data["username"] == mentor_name)]
+sp_name = sp_row["Mentor"].values[0] if not sp_row.empty else None
 
-# ===== إعداد الصفحة =====
-st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
-st.title(f"👋 أهلاً {username}")
-
-# ===== تحديد المستخدمين المتاحين للمحادثة =====
-all_user_options = []
-
-if permissions == "sp":
-    my_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
-    all_user_options += [(s, "مشرف") for s in my_supervisors]
-
-if permissions in ["supervisor", "sp"]:
-    assigned_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin([username] + [s for s, _ in all_user_options]))]
-    all_user_options += [(u, "مستخدم") for u in assigned_users["username"].tolist()]
-
-# إضافة سوبر مشرفين (إن وُجدوا) إلى القائمة للدردشة معهم
-if permissions == "supervisor":
-    my_sp = users_df[(users_df["username"] == username)]["Mentor"].values
-    if my_sp.size > 0:
-        all_user_options.insert(0, (my_sp[0], "مسؤول"))
-
-# ترتيب القائمة حسب النوع ثم الاسم
-all_user_options = sorted(all_user_options, key=lambda x: ({"مسؤول": 0, "مشرف": 1, "مستخدم": 2}[x[1]], x[0]))
-
-# ====== تبويبات الصفحة ======
-tabs = st.tabs(["💬 المحادثات", " تقرير إجمالي", "📋 تجميعي الكل", "📌 تجميعي بند", " تقرير فردي", "📈 رسوم بيانية"])
-
-# ===== دالة عرض المحادثة =====
-def show_chat_supervisor():
-    st.subheader("💬 الدردشة")
-    options_display = [f"{name} ({role})" for name, role in all_user_options]
-    selected_display = st.selectbox("اختر الشخص", options_display)
-    selected_user = selected_display.split(" (")[0]
-
-    chat_data = pd.DataFrame(chat_sheet.get_all_records())
-    chat_data = chat_data[chat_data["message"].notna()]
-    chat_data = chat_data[["timestamp", "from", "to", "message"]]
-
-    messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
-                         ((chat_data["from"] == selected_user) & (chat_data["to"] == username))]
-    messages = messages.sort_values(by="timestamp")
-
-    if messages.empty:
-        st.info("💬 لا توجد رسائل بعد.")
-    else:
-        for _, msg in messages.iterrows():
-            if msg["from"] == username:
-                st.markdown(f"<p style='color:#8B0000'><b>‍ أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"<p style='color:#000080'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
-
-    new_msg = st.text_area("✏️ اكتب رسالتك", height=100, key="chat_message")
-    if st.button("📨 إرسال الرسالة"):
-        if new_msg.strip():
-            timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")  # بتوقيت السعودية
-            chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
-            st.session_state["chat_message"] = ""
-            st.success("✅ تم إرسال الرسالة")
-            st.rerun()
-        else:
-            st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
-
-# ===== تبويب 1: المحادثات =====
-with tabs[0]:
-    show_chat_supervisor()
-# ===== تحميل بيانات الطلاب لعرض التقارير =====
-if permissions == "supervisor":
-    filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
-elif permissions == "sp":
-    supervised_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
-    filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin(supervised_supervisors))]
-else:
-    filtered_users = pd.DataFrame()
-
-all_data = []
-users_with_data = []
-all_usernames = filtered_users["username"].tolist()
-
-for _, user in filtered_users.iterrows():
-    user_name = user["username"]
-    sheet_name = user["sheet_name"]
-    try:
-        user_ws = spreadsheet.worksheet(sheet_name)
-        user_records = user_ws.get_all_records()
-        df = pd.DataFrame(user_records)
-        if "التاريخ" in df.columns:
-            df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
-            df.insert(0, "username", user_name)
-            all_data.append(df)
-            users_with_data.append(user_name)
-    except Exception as e:
-        st.warning(f"⚠️ خطأ في تحميل بيانات {user_name}: {e}")
-
-if not all_data:
-    st.info("ℹ️ لا توجد بيانات.")
+if not columns:
+    st.error("❌ لم يتم العثور على الأعمدة في ورقة البيانات.")
     st.stop()
 
-merged_df = pd.concat(all_data, ignore_index=True)
+def refresh_button(key):
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key=key):
+        st.cache_data.clear()
+        st.rerun()
 
-# ===== تبويب 2: تقرير إجمالي =====
+def load_data():
+    data = worksheet.get_all_records()
+    df = pd.DataFrame(data)
+    return df
+
+# ===== دالة عرض المحادثة =====
+
+def show_chat():
+    st.markdown("### 💬 المحادثة مع المشرفين")
+
+    options = [mentor_name]
+    if sp_name:
+        options.append(sp_name)
+
+    # استخدام خيار افتراضي
+    if "selected_mentor_display" not in st.session_state:
+        st.session_state["selected_mentor_display"] = "اختر الشخص"
+
+    options_display = ["اختر الشخص"] + options
+    selected_mentor_display = st.selectbox("📨 اختر الشخص الذي ترغب بمراسلته", options_display, key="selected_mentor_display")
+
+    if selected_mentor_display != "اختر الشخص":
+        selected_mentor = selected_mentor_display
+
+        chat_sheet = spreadsheet.worksheet("chat")
+        raw_data = chat_sheet.get_all_records()
+        chat_data = pd.DataFrame(raw_data) if raw_data else pd.DataFrame(columns=["timestamp", "from", "to", "message", "read_by_receiver"])
+
+        if not {"from", "to", "message", "timestamp"}.issubset(chat_data.columns):
+            st.warning("⚠️ لم يتم العثور على الأعمدة الصحيحة في ورقة الدردشة.")
+            return
+
+        # تحديث حالة القراءة
+        if "read_by_receiver" in chat_data.columns:
+            unread_indexes = chat_data[
+                (chat_data["from"] == selected_mentor) &
+                (chat_data["to"] == username) &
+                (chat_data["read_by_receiver"].astype(str).str.strip() == "")
+            ].index.tolist()
+
+            for i in unread_indexes:
+                chat_sheet.update_cell(i + 2, 5, "✓")  # الصف +2 لأن الصف الأول للعناوين
+
+        # استخراج الرسائل بعد التحديث
+        messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_mentor)) |
+                             ((chat_data["from"] == selected_mentor) & (chat_data["to"] == username))]
+        messages = messages.sort_values(by="timestamp")
+
+        if messages.empty:
+            st.info("💬 لا توجد رسائل حالياً.")
+        else:
+            for _, msg in messages.iterrows():
+                if msg["from"] == username:
+                    st.markdown(f"<p style='color:#000080'><b> أنت:</b> {msg['message']}</p>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<p style='color:#8B0000'><b> {msg['from']}:</b> {msg['message']}</p>", unsafe_allow_html=True)
+
+        new_msg = st.text_area("✏️ اكتب رسالتك هنا", height=100)
+        if st.button("📨 إرسال الرسالة"):
+            if new_msg.strip():
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                chat_sheet.append_row([timestamp, username, selected_mentor, new_msg, ""])
+                st.success("✅ تم إرسال الرسالة")
+                st.rerun()
+            else:
+                st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+
+
+
+
+# ===== التبويبات =====
+tabs = st.tabs(["📝 إدخال البيانات", "💬 المحادثات", "📊 تقارير المجموع"])
+
+# ===== التبويب الأول: إدخال البيانات =====
+
+
+with tabs[0]:
+
+    st.markdown(
+        """
+        <style>
+        body, .stTextInput, .stTextArea, .stSelectbox, .stButton, .stMarkdown, .stDataFrame {
+            direction: rtl;
+            text-align: right;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # تصغير "أهلاً ... مجموعتك"
+    st.markdown(f"<h3 style='color: #0000FF; font-weight: bold; font-size: 24px;'>👋 أهلاً {username} | مجموعتك / {mentor_name}</h3>", unsafe_allow_html=True)
+
+    # تصغير "المحاسبة الذاتية"
+    st.markdown("<h4 style='color: #0000FF; font-weight: bold; font-size: 20px;'>📝 المحاسبة الذاتية</h4>", unsafe_allow_html=True)
+
+    refresh_button("refresh_tab1")
+
+
+
+# ===== تنبيه بالرسائل غير المقروءة =====
+    chat_sheet = spreadsheet.worksheet("chat")
+    chat_data = pd.DataFrame(chat_sheet.get_all_records())
+
+    if "read_by_receiver" in chat_data.columns:
+        unread_msgs = chat_data[
+            (chat_data["to"] == username) &
+            (chat_data["message"].notna()) &
+            (chat_data["read_by_receiver"].astype(str).str.strip() == "")
+        ]
+        senders = unread_msgs["from"].unique().tolist()
+        if senders:
+            sender_list = "، ".join(senders)
+            st.markdown(f"""
+    <table style="width:100%;">
+    <tr>
+    <td style="direction: rtl; text-align: right; color: red; font-weight: bold; font-size: 16px;">
+    📬 يوجد لديك رسائل لم تطلع عليها من: ({sender_list})
+    </td>
+    </tr>
+    </table>
+    """, unsafe_allow_html=True)
+
+    with st.form("daily_form"):
+        today = datetime.today().date()
+
+        # توليد آخر 7 تواريخ بالهجري
+        hijri_dates = []
+        for i in range(7):
+            g_date = today - timedelta(days=i)
+            h_date = Gregorian(g_date.year, g_date.month, g_date.day).to_hijri()
+            weekday = g_date.strftime("%A")
+            arabic_weekday = {
+                "Saturday": "السبت",
+                "Sunday": "الأحد",
+                "Monday": "الاثنين",
+                "Tuesday": "الثلاثاء",
+                "Wednesday": "الأربعاء",
+                "Thursday": "الخميس",
+                "Friday": "الجمعة"
+            }[weekday]
+            hijri_label = f"{arabic_weekday} - {h_date.day}/{h_date.month}/{h_date.year} هـ"
+            hijri_dates.append((hijri_label, g_date))
+
+        # إنشاء قائمة اختيار من التواريخ الهجرية
+        hijri_labels = [label for label, _ in hijri_dates]
+        selected_label = st.selectbox("📅 اختر التاريخ (هجري)", hijri_labels)
+        selected_date = dict(hijri_dates)[selected_label]  # هذا هو التاريخ الميلادي المطابق
+
+        values = [selected_date.strftime("%Y-%m-%d")]
+
+        # الاختيارات الأولى
+        st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأولى</h3>", unsafe_allow_html=True)
+        options_1 = ["في المسجد جماعة", "في المنزل جماعة", "في المسجد منفرد", "في المنزل منفرد", "خارج الوقت"]
+        ratings_1 = {
+            "في المسجد جماعة": 5,
+            "في المنزل جماعة": 4,
+            "في المسجد منفرد": 3,
+            "في المنزل منفرد": 2,
+            "خارج الوقت": 0
+        }
+
+        for i, col in enumerate(columns[1:6]):
+            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)
+            rating = st.radio(col, options_1, index=0, key=col)
+            values.append(str(ratings_1[rating]))
+
+        # الاختيارات الثانية
+        st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الثانية</h3>", unsafe_allow_html=True)
+        options_2 = ["نعم", "ليس كاملاً", "لا"]
+        ratings_2 = {
+            "نعم": 5,
+            "ليس كاملاً": 3,
+            "لا": 0
+        }
+
+        for i, col in enumerate(columns[6:11]):
+            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)
+            rating = st.radio(col, options_2, index=0, key=col)
+            values.append(str(ratings_2[rating]))
+
+        # الاختيارات الأخيرة
+        st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>الاختيارات الأخيرة</h3>", unsafe_allow_html=True)
+        options_3 = ["نعم", "لا"]
+        ratings_3 = {
+            "نعم": 3,
+            "لا": 0
+        }
+
+        for i, col in enumerate(columns[11:]):
+            st.markdown(f"<h4 style='font-weight: bold;'>{col}</h4>", unsafe_allow_html=True)
+            rating = st.radio(col, options_3, index=0, key=col)
+            values.append(str(ratings_3[rating]))
+
+        # زر الإرسال
+        submit = st.form_submit_button("💾 حفظ")
+
+        if submit:
+            if selected_date not in [d for _, d in hijri_dates]:
+                st.error("❌ التاريخ غير صالح. لا يمكن حفظ البيانات لأكثر من أسبوع سابق فقط")
+            else:
+                all_dates = worksheet.col_values(1)
+                date_str = selected_date.strftime("%Y-%m-%d")
+                try:
+                    row_index = all_dates.index(date_str) + 1
+                except ValueError:
+                    row_index = len(all_dates) + 1
+                    worksheet.update_cell(row_index, 1, date_str)
+                for i, val in enumerate(values[1:], start=2):
+                    worksheet.update_cell(row_index, i, val)
+
+                st.cache_data.clear()
+                data = load_data()
+                st.success("✅ تم الحفظ بنجاح والاتصال بقاعدة البيانات")
+# ===== التبويب الثاني: المحادثة =====
 with tabs[1]:
-    st.subheader(" مجموع درجات كل مستخدم")
-    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_2"):
-        st.cache_data.clear()
-        st.rerun()
-    scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
-    grouped = merged_df.groupby("username")[scores.columns].sum()
-    grouped["المجموع"] = grouped.sum(axis=1)
-    grouped = grouped.sort_values(by="المجموع", ascending=True)
-    for user, row in grouped.iterrows():
-        st.markdown(f"### <span style='color: #006400;'>{user} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
 
-# ===== تبويب 3: تجميعي الكل =====
+    st.markdown(
+    """
+    <style>
+    body, .stTextInput, .stTextArea, .stSelectbox, .stButton, .stMarkdown, .stDataFrame {
+        direction: rtl;
+        text-align: right;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+    
+    refresh_button("refresh_chat")
+    show_chat()
+
+
+
+# ===== التبويب الثالث: تقارير المجموع =====
 with tabs[2]:
-    st.subheader("📋 مجموع الدرجات لكل مستخدم")
-    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_3"):
-        st.cache_data.clear()
-        st.rerun()
-    st.dataframe(grouped, use_container_width=True)
+    st.title("📊 مجموع البنود للفترة")
+    refresh_button("refresh_tab2")
 
-# ===== تبويب 4: تجميعي بند =====
-with tabs[3]:
-    st.subheader("📌 مجموع بند معين لكل المستخدمين")
-    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_4"):
-        st.cache_data.clear()
-        st.rerun()
-    all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username"]]
-    selected_activity = st.selectbox("اختر البند", all_columns)
-    activity_sum = merged_df.groupby("username")[selected_activity].sum().sort_values(ascending=True)
-    missing_users = set(all_usernames) - set(users_with_data)
-    for user in missing_users:
-        activity_sum[user] = 0
-    st.dataframe(activity_sum, use_container_width=True)
+    st.markdown("<h3 style='color: #0000FF; font-weight: bold;'>التقارير</h3>", unsafe_allow_html=True)
 
-# ===== تبويب 5: تقرير فردي =====
-with tabs[4]:
-    st.subheader(" تقرير تفصيلي لمستخدم")
-    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_5"):
-        st.cache_data.clear()
-        st.rerun()
-    selected_user = st.selectbox("اختر المستخدم", merged_df["username"].unique())
-    user_df = merged_df[merged_df["username"] == selected_user].sort_values("التاريخ")
-    st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
+    df = pd.DataFrame(worksheet.get_all_records())
+    df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
-# ===== تبويب 6: رسوم بيانية =====
-with tabs[5]:
-    st.subheader("📈 رسوم بيانية")
-    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_6"):
-        st.cache_data.clear()
-        st.rerun()
-    scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
-    grouped = merged_df.groupby("username")[scores.columns].sum()
-    grouped["المجموع"] = grouped.sum(axis=1)
-    fig = go.Figure(go.Pie(
-        labels=grouped.index,
-        values=grouped["المجموع"],
-        hole=0.4,
-        title="مجموع الدرجات"
-    ))
-    st.plotly_chart(fig, use_container_width=True)
+    if "البند" in df.columns and "المجموع" in df.columns:
+        df = df.dropna(subset=["البند", "المجموع"])
+
+    if "رقم التسلسل" in df.columns:
+        df = df.drop(columns=["رقم التسلسل"])
+
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input("من تاريخ", datetime.today().date() - timedelta(days=7))
+    with col2:
+        end_date = st.date_input("إلى تاريخ", datetime.today().date())
+
+    mask = (df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))
+    filtered = df[mask].drop(columns=["التاريخ"], errors="ignore")
+
+    if filtered.empty:
+        st.warning("⚠️ لا توجد بيانات في الفترة المحددة.")
+    else:
+        totals = filtered.sum(numeric_only=True)
+        total_score = totals.sum()
+
+        st.metric(label="📌 مجموعك الكلي لجميع البنود", value=int(total_score))
+
+        result_df = pd.DataFrame(totals, columns=["المجموع"])
+        result_df.index.name = "البند"
+        result_df = result_df.reset_index()
+        result_df = result_df.sort_values(by="المجموع", ascending=True)
+
+        result_df = result_df[["المجموع", "البند"]]
+        result_df["البند"] = result_df["البند"].apply(lambda x: f"<p style='color:#8B0000; text-align:center'>{x}</p>")
+        result_df["المجموع"] = result_df["المجموع"].apply(lambda x: f"<p style='color:#000080; text-align:center'>{x}</p>")
+
+        st.markdown(result_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+
+    
