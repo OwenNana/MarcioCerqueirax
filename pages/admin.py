@@ -29,13 +29,6 @@ if user_row.empty:
 
 row_index = user_row.index[0] + 2  # +2 لأن get_all_records يبدأ من الصف 2
 
-# ===== التأكد من وجود عمود notifications =====
-if "notifications" not in df.columns:
-    df["notifications"] = "on"
-    admin_ws.update_cell(1, len(df.columns), "notifications")
-    for i in range(len(df)):
-        admin_ws.update_cell(i + 2, len(df.columns), "on")
-
 # ===== تغيير كلمة المرور =====
 st.subheader("🔒 تغيير كلمة المرور")
 with st.form("change_password_form"):
@@ -55,14 +48,3 @@ with st.form("change_password_form"):
         else:
             admin_ws.update_cell(row_index, 2, new_pass)
             st.success("✅ تم تحديث كلمة المرور بنجاح.")
-
-# ===== إشعارات الرسائل =====
-st.subheader("🔔 إشعارات الرسائل الجديدة")
-
-current_setting = user_row.iloc[0].get("notifications", "on")
-toggle = st.radio("هل ترغب باستقبال تنبيهات عند وصول رسائل جديدة؟", ["on", "off"], index=0 if current_setting == "on" else 1)
-
-if toggle != current_setting:
-    notif_col_index = df.columns.get_loc("notifications") + 1
-    admin_ws.update_cell(row_index, notif_col_index, toggle)
-    st.success("✅ تم تحديث تفضيل الإشعارات.")
