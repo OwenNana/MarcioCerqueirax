@@ -26,8 +26,8 @@ if "authenticated" not in st.session_state:
 # التحقق من تسجيل الدخول
 if not st.session_state["authenticated"]:
     with st.form("login_form"):
-        username = st.text_input("اسم المستخدم")
-        password = st.text_input("كلمة المرور", type="password")
+        username = st.text_input("اسم المستخدم", key="username_input")
+        password = st.text_input("كلمة المرور", type="password", key="password_input")
         submitted = st.form_submit_button("دخول")
 
         if submitted:
@@ -59,6 +59,17 @@ if not st.session_state["authenticated"]:
                     st.error("⚠️ صلاحية غير معروفة.")
             else:
                 st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
+
+    # 🛡️ JavaScript لإلغاء تفعيل اقتراح كلمة المرور
+    st.markdown("""
+        <script>
+        const userInput = document.querySelector('input#username_input');
+        const passInput = document.querySelector('input#password_input');
+        if (userInput) userInput.setAttribute('autocomplete', 'off');
+        if (passInput) passInput.setAttribute('autocomplete', 'off');
+        </script>
+    """, unsafe_allow_html=True)
+
 else:
     # إعادة التوجيه حسب الصلاحية
     permission = st.session_state.get("permissions")
