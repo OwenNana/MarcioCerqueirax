@@ -126,8 +126,20 @@ def show_chat_supervisor():
         selected_user = selected_display.split(" (")[0]
 
         chat_data = pd.DataFrame(chat_sheet.get_all_records())
-        chat_data = chat_data[chat_data["message"].notna()]
-        chat_data = chat_data[["timestamp", "from", "to", "message", "read_by_receiver"]]
+        
+        # تحقق من أن البيانات ليست فارغة
+        if chat_data.empty:
+            st.info("💬 لا توجد رسائل بعد.")
+            return
+
+        # تحقق من الأعمدة المطلوبة
+        required_columns = {"timestamp", "from", "to", "message", "read_by_receiver"}
+        if not required_columns.issubset(chat_data.columns):
+            st.warning(f"⚠️ الأعمدة المطلوبة غير موجودة في ورقة الدردشة. الأعمدة الموجودة: {chat_data.columns}")
+            return
+
+        # حذف أي بيانات فارغة في الحقول المطلوبة
+        chat_data = chat_data.dropna(subset=["timestamp", "from", "to", "message", "read_by_receiver"])
 
         # تحديث حالة القراءة
         unread_indexes = chat_data[
@@ -137,7 +149,7 @@ def show_chat_supervisor():
         ].index.tolist()
 
         for i in unread_indexes:
-            chat_sheet.update_cell(i + 2, 5, "✓")
+            chat_sheet.update_cell(i + 2, 5, "✓")  # الصف +2 لأن الصف الأول للعناوين
 
         # عرض الرسائل
         messages = chat_data[((chat_data["from"] == username) & (chat_data["to"] == selected_user)) |
@@ -145,7 +157,7 @@ def show_chat_supervisor():
         messages = messages.sort_values(by="timestamp")
 
         if messages.empty:
-            st.info("💬 لا توجد رسائل حالياً.")
+            st.info("💬 لا توجد رسائل بعد.")
         else:
             for _, msg in messages.iterrows():
                 if msg["from"] == username:
@@ -160,16 +172,17 @@ def show_chat_supervisor():
                 timestamp = (datetime.utcnow() + pd.Timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
                 chat_sheet.append_row([timestamp, username, selected_user, new_msg, ""])
         
-                # رسالة تم إرسالها
                 st.success("✅ تم إرسال الرسالة")
-
-                # إعادة تحميل الصفحة بعد الإرسال
                 st.rerun()
 
                 # مسح النص في حقل النص
                 del st.session_state["chat_message"]
             else:
                 st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
+
+
+
+
 
 # ===== تبويب 1: تقرير إجمالي =====
 with tabs[0]:
