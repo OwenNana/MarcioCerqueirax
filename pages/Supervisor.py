@@ -60,7 +60,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title(f"👋 أهلاً {username}")
+st.title(f"👋 أهلاً {fullname}")
 
 # ===== تحديد المستخدمين المتاحين للمحادثة =====
 all_user_options = []
