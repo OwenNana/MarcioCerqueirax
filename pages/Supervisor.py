@@ -25,7 +25,6 @@ SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/au
 creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
 creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
 client = gspread.authorize(creds)
-
 spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
 admin_sheet = spreadsheet.worksheet("admin")
 users_df = pd.DataFrame(admin_sheet.get_all_records())
@@ -85,17 +84,21 @@ def show_chat_supervisor():
             st.rerun()
         else:
             st.warning("⚠️ لا يمكن إرسال رسالة فارغة.")
-
 # ===== تبويبات التقارير =====
-tabs = st.tabs(["💬 المحادثات", "👤 تقرير إجمالي", "📋 تجميعي الكل", "📌 تجميعي بند", "👤 تقرير فردي", "📈 رسوم بيانية"])
+tabs = st.tabs([
+    "💬 المحادثات", 
+    "👤 تقرير إجمالي", 
+    "📋 تجميعي الكل", 
+    "📌 تجميعي بند", 
+    "👤 تقرير فردي", 
+    "📈 رسوم بيانية"
+])
 
+# ===== تبويب 1: المحادثات =====
 with tabs[0]:
     show_chat_supervisor()
-# ===== إعداد الفترة =====
-default_start = datetime.today().replace(day=1)
-default_end = datetime.today()
 
-# ===== تحميل وتصفية البيانات =====
+# ===== تحميل بيانات المستخدمين =====
 if permissions == "supervisor":
     filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
 elif permissions == "sp":
@@ -130,61 +133,57 @@ merged_df = pd.concat(all_data, ignore_index=True)
 # ===== تبويب 2: تقرير إجمالي =====
 with tabs[1]:
     st.subheader("👤 مجموع درجات كل مستخدم")
-    start = st.date_input("من تاريخ", default_start, key="start1")
-    end = st.date_input("إلى تاريخ", default_end, key="end1")
-    if st.button("🔄 تحديث", key="refresh1"):
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_2"):
         st.cache_data.clear()
         st.rerun()
-
-    df = merged_df[(merged_df["التاريخ"] >= pd.to_datetime(start)) & (merged_df["التاريخ"] <= pd.to_datetime(end))]
-    scores = df.drop(columns=["التاريخ", "username"], errors="ignore")
-    grouped = df.groupby("username")[scores.columns].sum()
+    scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
+    grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
     grouped = grouped.sort_values(by="المجموع", ascending=True)
-
     for user, row in grouped.iterrows():
         st.markdown(f"### <span style='color: #006400;'>{user} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
 
 # ===== تبويب 3: تجميعي الكل =====
 with tabs[2]:
     st.subheader("📋 مجموع الدرجات لكل مستخدم")
-    start = st.date_input("من تاريخ", default_start, key="start2")
-    end = st.date_input("إلى تاريخ", default_end, key="end2")
-    df = merged_df[(merged_df["التاريخ"] >= pd.to_datetime(start)) & (merged_df["التاريخ"] <= pd.to_datetime(end))]
-    scores = df.drop(columns=["التاريخ", "username"], errors="ignore")
-    grouped = df.groupby("username")[scores.columns].sum()
-    grouped["المجموع"] = grouped.sum(axis=1)
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_3"):
+        st.cache_data.clear()
+        st.rerun()
     st.dataframe(grouped, use_container_width=True)
 
 # ===== تبويب 4: تجميعي بند =====
 with tabs[3]:
     st.subheader("📌 مجموع بند معين لكل المستخدمين")
-    start = st.date_input("من تاريخ", default_start, key="start3")
-    end = st.date_input("إلى تاريخ", default_end, key="end3")
-    df = merged_df[(merged_df["التاريخ"] >= pd.to_datetime(start)) & (merged_df["التاريخ"] <= pd.to_datetime(end))]
-    col = st.selectbox("اختر البند", [c for c in df.columns if c not in ["التاريخ", "username"]])
-    result = df.groupby("username")[col].sum().sort_values(ascending=True)
-    st.dataframe(result, use_container_width=True)
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_4"):
+        st.cache_data.clear()
+        st.rerun()
+    all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username"]]
+    selected_activity = st.selectbox("اختر البند", all_columns)
+    activity_sum = merged_df.groupby("username")[selected_activity].sum().sort_values(ascending=True)
+    missing_users = set(all_usernames) - set(users_with_data)
+    for user in missing_users:
+        activity_sum[user] = 0
+    st.dataframe(activity_sum, use_container_width=True)
 
 # ===== تبويب 5: تقرير فردي =====
 with tabs[4]:
     st.subheader("👤 تقرير تفصيلي لمستخدم")
-    start = st.date_input("من تاريخ", default_start, key="start4")
-    end = st.date_input("إلى تاريخ", default_end, key="end4")
-    user = st.selectbox("اختر المستخدم", merged_df["username"].unique())
-    df = merged_df[(merged_df["username"] == user) & (merged_df["التاريخ"] >= pd.to_datetime(start)) & (merged_df["التاريخ"] <= pd.to_datetime(end))]
-    st.dataframe(df.reset_index(drop=True), use_container_width=True)
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_5"):
+        st.cache_data.clear()
+        st.rerun()
+    selected_user = st.selectbox("اختر المستخدم", merged_df["username"].unique())
+    user_df = merged_df[merged_df["username"] == selected_user].sort_values("التاريخ")
+    st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
 
 # ===== تبويب 6: رسوم بيانية =====
 with tabs[5]:
     st.subheader("📈 رسوم بيانية")
-    start = st.date_input("من تاريخ", default_start, key="start5")
-    end = st.date_input("إلى تاريخ", default_end, key="end5")
-    df = merged_df[(merged_df["التاريخ"] >= pd.to_datetime(start)) & (merged_df["التاريخ"] <= pd.to_datetime(end))]
-    scores = df.drop(columns=["التاريخ", "username"], errors="ignore")
-    grouped = df.groupby("username")[scores.columns].sum()
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_6"):
+        st.cache_data.clear()
+        st.rerun()
+    scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
+    grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
-
     fig = go.Figure(go.Pie(
         labels=grouped.index,
         values=grouped["المجموع"],
