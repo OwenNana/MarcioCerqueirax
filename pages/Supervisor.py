@@ -135,6 +135,18 @@ def show_chat_supervisor():
 
 # ===== تبويب 1: تقرير إجمالي =====
 with tabs[0]:
+    # === تنبيه بالرسائل غير المقروءة ===
+    chat_data = pd.DataFrame(chat_sheet.get_all_records())
+    unread_msgs = chat_data[
+        (chat_data["to"] == username) &
+        (chat_data["message"].notna()) &
+        (chat_data["read_by_receiver"].astype(str).str.strip() == "")
+    ]
+    senders = unread_msgs["from"].unique().tolist()
+    if senders:
+        sender_list = "، ".join(senders)
+        st.markdown(f"<p style='color:red; font-weight:bold;'>يوجد لديك عدد دردشات لم تطلع عليها من ({sender_list})</p>", unsafe_allow_html=True)
+
     st.subheader(" مجموع درجات كل مستخدم")
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_2"):
         st.cache_data.clear()
