@@ -196,7 +196,7 @@ def show_chat_supervisor():
 
 # ===== تبويب 1: تقرير إجمالي =====
 with tabs[0]:
-    # تنبيه الرسائل غير المقروءة (الكود الموجود مسبقًا)
+    # تنبيه بالرسائل غير المقروءة
     chat_data = pd.DataFrame(chat_sheet.get_all_records())
     required_columns = ["to", "message", "read_by_receiver", "from"]
     if all(col in chat_data.columns for col in required_columns):
@@ -212,7 +212,7 @@ with tabs[0]:
     else:
         st.warning("⚠️ لا يوجد لديك دردشات. تأكد من الضغط على أيقونة جلب المعلومات من قاعدة البيانات دائماً.")
 
-    # **إضافة واجهة اختيار التواريخ**
+    # واجهة اختيار الفترة الزمنية
     st.markdown("### تحديد الفترة الزمنية للتقرير")
     col_date1, col_date2 = st.columns(2)
     with col_date1:
@@ -220,7 +220,7 @@ with tabs[0]:
     with col_date2:
         end_date = st.date_input("إلى تاريخ", value=datetime.today().date(), key="end_date_tab0")
 
-    # تصفية البيانات بناءً على الفترة المختارة
+    # تصفية البيانات باستخدام الفترة الزمنية
     df_filtered = merged_df.copy()
     if "التاريخ" in df_filtered.columns:
         df_filtered["التاريخ"] = pd.to_datetime(df_filtered["التاريخ"], errors="coerce")
@@ -231,19 +231,21 @@ with tabs[0]:
     else:
         st.error("⚠️ عمود التاريخ غير موجود.")
 
-    st.subheader("مجموع درجات كل مستخدم")
+    # زر جلب المعلومات من قاعدة البيانات
     if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_2"):
         st.cache_data.clear()
         st.rerun()
 
+    # التجميع بناءً على username
     scores = df_filtered.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = df_filtered.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1, numeric_only=True)
     grouped = grouped.sort_values(by="المجموع", ascending=True)
+
+    # عرض النتيجة مع الحصول على الاسم الكامل للعرض النهائي
     for user, row in grouped.iterrows():
         full_name = users_df.loc[users_df["username"] == user, "full_name"].values[0]
         st.markdown(f"### <span style='color: #006400;'>{full_name} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
-
 
 # ===== تبويب 2: المحادثات =====
 with tabs[1]:
