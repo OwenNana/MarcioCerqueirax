@@ -51,8 +51,10 @@ if not st.session_state["authenticated"]:
             ]
             if not matched.empty:
                 user_row = matched.iloc[0]
+                full_name = user_row["full_name"]  # جلب الاسم الكامل
                 st.session_state["authenticated"] = True
-                st.session_state["username"] = username
+                st.session_state["username"] = username  # الاحتفاظ بـ username لتسجيل الدخول
+                st.session_state["full_name"] = full_name  # تخزين الاسم الكامل في الجلسة
                 st.session_state["sheet_url"] = user_row["sheet_name"]
                 st.session_state["permissions"] = user_row["role"]
                 st.success("✅ تم تسجيل الدخول")
