@@ -65,7 +65,7 @@ sp_name = sp_row["Mentor"].values[0] if not sp_row.empty else None
 
 
 # إضافة "full_name" إلى merged_df بناءً على "username"
-merged_df["full_name"] = merged_df["username"].map(lambda x: users_df.loc[users_df["username"] == x, "full_name"].values[0])
+merged_df["full_name"] = merged_df["username"].map(lambda x: users_df.get(users_df["username"] == x, {}).get("full_name", "غير موجود"))
 
 
 
