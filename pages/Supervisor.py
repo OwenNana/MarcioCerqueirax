@@ -6,16 +6,16 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import plotly.graph_objects as go
 
-# ===== التحقق من تسجيل الدخول وإعادة التوجيه =====
+# ===== التحقق من تسجيل الدخول =====
 if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
     st.warning("🔐 يجب تسجيل الدخول أولاً")
     st.switch_page("home.py")
 
-if st.session_state.get("permissions") != "supervisor":
-    permission = st.session_state.get("permissions")
-    if permission == "admin":
+permissions = st.session_state.get("permissions")
+if permissions not in ["supervisor", "sp"]:
+    if permissions == "admin":
         st.switch_page("pages/AdminDashboard.py")
-    elif permission == "user":
+    elif permissions == "user":
         st.switch_page("pages/UserDashboard.py")
     else:
         st.switch_page("home.py")
@@ -54,44 +54,44 @@ st.markdown("""
 
 st.title("📊 تقارير المشرف")
 
-# ===== تحديد الفترة الزمنية (أعلى الصفحة) =====
+# ===== تحديد الفترة الزمنية =====
 st.subheader("📅 تحديد الفترة الزمنية")
 start_date = st.date_input("من تاريخ", datetime.today())
 end_date = st.date_input("إلى تاريخ", datetime.today())
-
 if start_date > end_date:
     st.error("⚠️ تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
     st.stop()
 
-# ===== جلب المعلومات من قاعدة البيانات =====
-if st.button("🔄 جلب المعلومات من قاعدة البيانات"):
-    st.rerun()
-
-# ===== تحقق من صلاحية الدخول =====
-if "permissions" not in st.session_state or st.session_state["permissions"] != "supervisor":
-    st.error("🚫 هذه الصفحة مخصصة للمشرف فقط.")
-    st.stop()
-
-# ===== قراءة ورقة admin =====
+# ===== تحميل بيانات المستخدمين من admin sheet =====
 admin_sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY").worksheet("admin")
-admin_data = admin_sheet.get_all_records()
-users = admin_data[5:]  # الصفوف من السادس فما فوق
+users_df = pd.DataFrame(admin_sheet.get_all_records())
 
-# ===== تصفية المستخدمين حسب المشرف =====
-mentor_name = st.session_state.get("username")  # اسم المشرف من الجلسة
-filtered_users = [user for user in users if user.get("Mentor") == mentor_name]
+# ===== تحديد اسم المشرف الحالي =====
+username = st.session_state.get("username")
+
+# ===== تصفية المستخدمين بحسب الصلاحية =====
+if permissions == "supervisor":
+    filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"] == username)]
+elif permissions == "sp":
+    # حدد أسماء المشرفين الذين Mentor لهم هو السوبر مشرف الحالي
+    supervised_supervisors = users_df[(users_df["role"] == "supervisor") & (users_df["Mentor"] == username)]["username"].tolist()
+    filtered_users = users_df[(users_df["role"] == "user") & (users_df["Mentor"].isin(supervised_supervisors))]
+
+if filtered_users.empty:
+    st.info("ℹ️ لا يوجد طلاب لعرض تقاريرهم.")
+    st.stop()
 
 # ===== تبويبات التقارير =====
 tabs = st.tabs(["👤 تقرير إجمالي للمستخدمين", "📋 تجميعي الكل", "📌 تجميعي بند", "👤 تقرير فردي", "📈 رسوم بيانية"])
 
-# ===== تجميع البيانات من المستخدمين الذين يتبعون المشرف ======
+# ===== جلب البيانات لكل طالب =====
 all_data = []
-users_with_data = []  # لتتبع المستخدمين الذين لديهم سجلات
-all_users = [user.get("username") for user in filtered_users]  # قائمة بجميع المستخدمين الذين يتبعون المشرف
+users_with_data = []
+all_usernames = filtered_users["username"].tolist()
 
-for user in filtered_users:
-    username = user.get("username")
-    sheet_name = user.get("sheet_name")
+for _, user in filtered_users.iterrows():
+    username = user["username"]
+    sheet_name = user["sheet_name"]
     try:
         user_ws = admin_sheet.spreadsheet.worksheet(sheet_name)
         user_records = user_ws.get_all_records()
@@ -102,9 +102,8 @@ for user in filtered_users:
             if not df.empty:
                 df.insert(0, "username", username)
                 all_data.append(df)
-                users_with_data.append(username)  # سجل أن هذا المستخدم لديه بيانات
+                users_with_data.append(username)
             else:
-                # إذا لم يكن لدى المستخدم أي سجلات في الفترة، أضف صف مع القيم 0
                 empty_df = pd.DataFrame(columns=df.columns)
                 empty_df["username"] = [username]
                 empty_df["التاريخ"] = pd.NaT
@@ -114,7 +113,7 @@ for user in filtered_users:
                 all_data.append(empty_df)
                 users_with_data.append(username)
     except Exception as e:
-        st.warning(f"⚠️ حدث خطأ أثناء قراءة بيانات {username}: {e}")
+        st.warning(f"⚠️ خطأ في تحميل بيانات {username}: {e}")
 
 if not all_data:
     st.info("ℹ️ لا توجد بيانات في الفترة المحددة.")
@@ -122,7 +121,7 @@ if not all_data:
 
 merged_df = pd.concat(all_data, ignore_index=True)
 
-# ========== تبويب 1: تقرير إجمالي للمستخدمين ==========
+# ========== تبويب 1: تقرير إجمالي ==========
 with tabs[0]:
     st.subheader("👤 مجموع درجات كل مستخدم")
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
@@ -133,32 +132,23 @@ with tabs[0]:
         cols.insert(0, cols.pop(cols.index("المجموع")))
         grouped = grouped[cols]
     grouped = grouped.sort_values(by="المجموع", ascending=True)
-    
-    # عرض اسم الشخص والمجموع بشكل واضح وكبير بلون أخضر داكن
+
     for index, row in grouped.iterrows():
         st.markdown(f"### <span style='color: #006400;'>{index} : {row['المجموع']} درجة</span>", unsafe_allow_html=True)
 
-# ========== تبويب 2: التقرير التجميعي ==========
+# ========== تبويب 2: تجميعي الكل ==========
 with tabs[1]:
     st.subheader("📋 مجموع الدرجات لكل مستخدم")
-    grouped = merged_df.groupby("username")[scores.columns].sum()
-    grouped["المجموع"] = grouped.sum(axis=1)
-    cols = grouped.columns.tolist()
-    if "المجموع" in cols:
-        cols.insert(0, cols.pop(cols.index("المجموع")))
-        grouped = grouped[cols]
-    grouped = grouped.sort_values(by="المجموع", ascending=True)
     st.dataframe(grouped, use_container_width=True)
 
-# ========== تبويب 3: تقرير بند معين ==========
+# ========== تبويب 3: تجميعي بند ==========
 with tabs[2]:
     st.subheader("📌 مجموع بند معين لكل المستخدمين")
     all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username"]]
     selected_activity = st.selectbox("اختر البند", all_columns)
     activity_sum = merged_df.groupby("username")[selected_activity].sum().sort_values(ascending=True)
 
-    # التأكد من إضافة المستخدمين الذين ليس لديهم سجلات
-    missing_users = set(all_users) - set(users_with_data)
+    missing_users = set(all_usernames) - set(users_with_data)
     for user in missing_users:
         activity_sum[user] = 0
 
@@ -169,14 +159,6 @@ with tabs[3]:
     st.subheader("👤 تقرير تفصيلي لمستخدم")
     selected_user = st.selectbox("اختر المستخدم", merged_df["username"].unique())
     user_df = merged_df[merged_df["username"] == selected_user].sort_values("التاريخ")
-    
-    # إضافة المستخدمين الذين ليس لديهم سجلات
-    if selected_user not in merged_df["username"].values:
-        user_df = pd.DataFrame({"username": [selected_user], "التاريخ": [pd.NaT]})
-        for col in user_df.columns:
-            if col not in ["username", "التاريخ"]:
-                user_df[col] = 0
-
     st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
 
 # ========== تبويب 5: رسوم بيانية ==========
