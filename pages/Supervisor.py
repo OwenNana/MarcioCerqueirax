@@ -128,7 +128,7 @@ with tabs[0]:
     if "المجموع" in cols:
         cols.insert(0, cols.pop(cols.index("المجموع")))
         grouped = grouped[cols]
-    grouped = grouped.sort_values(by="المجموع", ascending=False)
+    grouped = grouped.sort_values(by="المجموع", ascending=True)
     
     # عرض اسم الشخص والمجموع بشكل واضح وكبير بلون أخضر داكن
     for index, row in grouped.iterrows():
