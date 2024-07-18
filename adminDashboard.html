@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة تحكم الآدمن المتقدمة - مع أعمدة ديناميكية</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+  <!-- تحميل مكتبات Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h2, h3 {
+      text-align: center;
+      color: #2980b9;
+    }
+    .option {
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+    }
+    form {
+      margin-bottom: 10px;
+    }
+    form input[type="date"],
+    form input[type="text"],
+    form select {
+      padding: 8px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    form button {
+      padding: 8px 12px;
+      background-color: #2980b9;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    form button:hover {
+      background-color: #1c5980;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #2980b9;
+      color: #fff;
+    }
+  </style>
+  <script>
+    // إعدادات Firebase – استبدل القيم بالقيم الخاصة بمشروعك
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY_HERE",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    
+    // التحقق من صلاحية الآدمن باستخدام البريد الإلكتروني
+    const ADMIN_EMAIL = "admin@example.com"; // عدل البريد الإلكتروني الخاص بالآدمن هنا
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        if (user.email !== ADMIN_EMAIL) {
+          alert("هذه الصفحة مخصصة للآدمن فقط!");
+          window.location.href = "index.html";
+        }
+      } else {
+        window.location.href = "index.html";
+      }
+    });
+
+    // دالة للحصول على جميع المفاتيح (الأعمدة) الفريدة من مصفوفة من السجلات
+    function getAllUniqueKeys(records) {
+      const keys = new Set();
+      records.forEach(record => {
+        Object.keys(record).forEach(key => keys.add(key));
+      });
+      return Array.from(keys);
+    }
+
+    // دالة لإنشاء جدول HTML ديناميكي من مصفوفة السجلات
+    function createDynamicTable(records) {
+      if (!records.length) {
+        return "<p>لا توجد بيانات لعرضها.</p>";
+      }
+      const headers = getAllUniqueKeys(records);
+      let tableHtml = "<table><thead><tr>";
+      headers.forEach(header => {
+        tableHtml += `<th>${header}</th>`;
+      });
+      tableHtml += "</tr></thead><tbody>";
+      records.forEach(record => {
+        tableHtml += "<tr>";
+        headers.forEach(header => {
+          tableHtml += `<td>${record[header] !== undefined ? record[header] : ''}</td>`;
+        });
+        tableHtml += "</tr>";
+      });
+      tableHtml += "</tbody></table>";
+      return tableHtml;
+    }
+
+    // -------------------
+    // الخيار 1: عرض جميع المستخدمين ليوم محدد مرتّبين بالإجمالي (الأدنى تقييماً)
+    // يتم تجميع سجلات اليوم لكل مستخدم مع احتساب مجموع كل الحقول الرقمية (باستثناء "date")
+    function loadOption1Records() {
+      const selectedDate = document.getElementById('option1-date').value;
+      if (!selectedDate) {
+        alert("يرجى اختيار التاريخ");
+        return;
+      }
+      const resultsDiv = document.getElementById('option1-results');
+      resultsDiv.innerHTML = "";
+      db.collectionGroup("dailyRecords")
+        .where("date", "==", selectedDate)
+        .get()
+        .then(querySnapshot => {
+          const userAggregates = {};
+          querySnapshot.forEach(doc => {
+            const data = doc.data();
+            const userId = doc.ref.parent.parent.id;
+            if (!userAggregates[userId]) {
+              userAggregates[userId] = { "المستخدم": userId };
+            }
+            // تجميع كل الحقول الرقمية (باستثناء "date")
+            Object.keys(data).forEach(key => {
+              if (key === "date") return;
+              const val = Number(data[key]);
+              if (!isNaN(val)) {
+                if (userAggregates[userId][key] !== undefined) {
+                  userAggregates[userId][key] += val;
+                } else {
+                  userAggregates[userId][key] = val;
+                }
+              }
+            });
+          });
+          // تحويل النتائج إلى مصفوفة وإضافة الحقل "المجموع الكلي"
+          const aggregatedRecords = Object.values(userAggregates);
+          aggregatedRecords.forEach(record => {
+            let overall = 0;
+            Object.keys(record).forEach(key => {
+              if (key !== "المستخدم") {
+                overall += record[key];
+              }
+            });
+            record["المجموع الكلي"] = overall;
+          });
+          // ترتيب المستخدمين بناءً على المجموع الكلي تصاعديًا
+          aggregatedRecords.sort((a, b) => a["المجموع الكلي"] - b["المجموع الكلي"]);
+          resultsDiv.innerHTML = createDynamicTable(aggregatedRecords);
+        })
+        .catch(error => {
+          alert("حدث خطأ أثناء جلب البيانات: " + error.message);
+        });
+    }
+
+    // -------------------
+    // الخيار 2: عرض تفصيلي لكل شخص باختيار اليوم والشخص
+    // سيتم جلب السجل ليوم محدد للمستخدم المدخل وعرض جميع المفاتيح التي يحتويها
+    function loadOption2Records() {
+      const selectedUser = document.getElementById('option2-user').value;
+      const selectedDate = document.getElementById('option2-date').value;
+      if (!selectedUser || !selectedDate) {
+        alert("يرجى اختيار المستخدم والتاريخ");
+        return;
+      }
+      const resultsDiv = document.getElementById('option2-results');
+      resultsDiv.innerHTML = "";
+      db.collection("users").doc(selectedUser).collection("dailyRecords")
+        .where("date", "==", selectedDate)
+        .get()
+        .then(querySnapshot => {
+          let records = [];
+          querySnapshot.forEach(doc => {
+            records.push(doc.data());
+          });
+          if (!records.length) {
+            resultsDiv.innerHTML = "<p>لا توجد بيانات لهذا المستخدم في هذا التاريخ</p>";
+          } else {
+            resultsDiv.innerHTML = createDynamicTable(records);
+          }
+        })
+        .catch(error => {
+          alert("حدث خطأ أثناء جلب البيانات: " + error.message);
+        });
+    }
+
+    // -------------------
+    // الخيار 3: عرض كامل درجات الأشخاص لفترة معينة مرتّبين بالإجمالي (الأدنى تقييماً)
+    // يتم تجميع سجلات الفترة لكل مستخدم وجمع كل الحقول الرقمية
+    function loadOption3Records() {
+      const startDate = document.getElementById('option3-start-date').value;
+      const endDate = document.getElementById('option3-end-date').value;
+      if (!startDate || !endDate) {
+        alert("يرجى تحديد الفترة");
+        return;
+      }
+      const resultsDiv = document.getElementById('option3-results');
+      resultsDiv.innerHTML = "";
+      db.collectionGroup("dailyRecords")
+        .where("date", ">=", startDate)
+        .where("date", "<=", endDate)
+        .get()
+        .then(querySnapshot => {
+          const userAggregates = {};
+          querySnapshot.forEach(doc => {
+            const data = doc.data();
+            const userId = doc.ref.parent.parent.id;
+            if (!userAggregates[userId]) {
+              userAggregates[userId] = { "المستخدم": userId };
+            }
+            Object.keys(data).forEach(key => {
+              if (key === "date") return;
+              const val = Number(data[key]);
+              if (!isNaN(val)) {
+                if (userAggregates[userId][key] !== undefined) {
+                  userAggregates[userId][key] += val;
+                } else {
+                  userAggregates[userId][key] = val;
+                }
+              }
+            });
+          });
+          const aggregatedRecords = Object.values(userAggregates);
+          aggregatedRecords.forEach(record => {
+            let overall = 0;
+            Object.keys(record).forEach(key => {
+              if (key !== "المستخدم") {
+                overall += record[key];
+              }
+            });
+            record["المجموع الكلي"] = overall;
+          });
+          aggregatedRecords.sort((a, b) => a["المجموع الكلي"] - b["المجموع الكلي"]);
+          resultsDiv.innerHTML = createDynamicTable(aggregatedRecords);
+        })
+        .catch(error => {
+          alert("حدث خطأ أثناء جلب البيانات: " + error.message);
+        });
+    }
+
+    // -------------------
+    // الخيار 4: عرض مجموع درجات شخص لفترة معينة مع تفصيل الأعمدة
+    // يتم جلب سجلات المستخدم خلال الفترة وتجمع قيم كل حقل على حدة
+    function loadOption4Records() {
+      const selectedUser = document.getElementById('option4-user').value;
+      const startDate = document.getElementById('option4-start-date').value;
+      const endDate = document.getElementById('option4-end-date').value;
+      if (!selectedUser || !startDate || !endDate) {
+        alert("يرجى تحديد المستخدم والفترة");
+        return;
+      }
+      const resultsDiv = document.getElementById('option4-result');
+      resultsDiv.innerHTML = "";
+      db.collection("users").doc(selectedUser).collection("dailyRecords")
+        .where("date", ">=", startDate)
+        .where("date", "<=", endDate)
+        .get()
+        .then(querySnapshot => {
+          let aggregatedRecord = {};
+          querySnapshot.forEach(doc => {
+            const data = doc.data();
+            Object.keys(data).forEach(key => {
+              if (key === "date") return;
+              const val = Number(data[key]);
+              if (!isNaN(val)) {
+                if (aggregatedRecord[key] !== undefined) {
+                  aggregatedRecord[key] += val;
+                } else {
+                  aggregatedRecord[key] = val;
+                }
+              }
+            });
+          });
+          let overall = 0;
+          Object.keys(aggregatedRecord).forEach(key => {
+            overall += aggregatedRecord[key];
+          });
+          aggregatedRecord["المجموع الكلي"] = overall;
+          resultsDiv.innerHTML = createDynamicTable([aggregatedRecord]);
+        })
+        .catch(error => {
+          alert("حدث خطأ أثناء جلب البيانات: " + error.message);
+        });
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h2>لوحة تحكم الآدمن المتقدمة - مع أعمدة ديناميكية</h2>
+    
+    <!-- الخيار 1 -->
+    <div class="option" id="option1">
+      <h3>الخيار 1: عرض جميع المستخدمين ليوم محدد مرتّبين بالإجمالي (الأدنى تقييماً)</h3>
+      <form onsubmit="event.preventDefault(); loadOption1Records();">
+        <label for="option1-date">اختر التاريخ:</label>
+        <input type="date" id="option1-date" required>
+        <button type="submit">عرض النتائج</button>
+      </form>
+      <div id="option1-results"><p>لم يتم تحميل البيانات</p></div>
+    </div>
+
+    <!-- الخيار 2 -->
+    <div class="option" id="option2">
+      <h3>الخيار 2: عرض تفصيلي لكل شخص باختيار اليوم والشخص</h3>
+      <form onsubmit="event.preventDefault(); loadOption2Records();">
+        <label for="option2-user">المستخدم (UID):</label>
+        <input type="text" id="option2-user" placeholder="مثال: uid123" required>
+        <label for="option2-date">اختر التاريخ:</label>
+        <input type="date" id="option2-date" required>
+        <button type="submit">عرض التفاصيل</button>
+      </form>
+      <div id="option2-results"><p>لم يتم تحميل البيانات</p></div>
+    </div>
+
+    <!-- الخيار 3 -->
+    <div class="option" id="option3">
+      <h3>الخيار 3: عرض كامل درجات الأشخاص لفترة معينة مرتّبين بالإجمالي (الأدنى تقييماً)</h3>
+      <form onsubmit="event.preventDefault(); loadOption3Records();">
+        <label for="option3-start-date">تاريخ البداية:</label>
+        <input type="date" id="option3-start-date" required>
+        <label for="option3-end-date">تاريخ النهاية:</label>
+        <input type="date" id="option3-end-date" required>
+        <button type="submit">عرض النتائج</button>
+      </form>
+      <div id="option3-results"><p>لم يتم تحميل البيانات</p></div>
+    </div>
+
+    <!-- الخيار 4 -->
+    <div class="option" id="option4">
+      <h3>الخيار 4: عرض مجموع درجات شخص لفترة معينة مع تفصيل الأعمدة</h3>
+      <form onsubmit="event.preventDefault(); loadOption4Records();">
+        <label for="option4-user">المستخدم (UID):</label>
+        <input type="text" id="option4-user" placeholder="مثال: uid123" required>
+        <label for="option4-start-date">تاريخ البداية:</label>
+        <input type="date" id="option4-start-date" required>
+        <label for="option4-end-date">تاريخ النهاية:</label>
+        <input type="date" id="option4-end-date" required>
+        <button type="submit">عرض النتائج</button>
+      </form>
+      <div id="option4-result"><p>لم يتم تحميل البيانات</p></div>
+    </div>
+    
+  </div>
+</body>
+</html>

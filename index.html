@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الدخول - المحاسبة الذاتية</title>
+  <!-- تحميل Google Font لخط عصري مناسب -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+  <!-- تحميل مكتبات Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
+  <style>
+    /* إعداد الخط والاتجاه */
+    body {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #6dd5fa, #2980b9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #333;
+    }
+    
+    .login-container {
+      background: #fff;
+      width: 90%;
+      max-width: 400px;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    }
+    
+    .login-container h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #2980b9;
+    }
+    
+    .login-container form {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .login-container label {
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+    
+    .login-container input {
+      padding: 12px 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+      outline: none;
+    }
+    
+    .login-container input:focus {
+      border-color: #2980b9;
+      box-shadow: 0 0 3px rgba(41, 128, 185, 0.5);
+    }
+    
+    .login-container button {
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      background: #2980b9;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    
+    .login-container button:hover {
+      background: #1c5980;
+    }
+    
+    /* للتجاوب مع الشاشات الصغيرة */
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 20px;
+      }
+    }
+  </style>
+  <script>
+    // إعدادات Firebase - استبدل القيم بالقيم الخاصة بمشروعك
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY_HERE",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // تهيئة Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById('login-form');
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        // محاولة تسجيل الدخول
+        auth.signInWithEmailAndPassword(email, password)
+          .then((userCredential) => {
+            console.log("تم تسجيل الدخول بنجاح:", userCredential.user);
+            // بعد تسجيل الدخول، يمكنك إعادة توجيه المستخدم إلى صفحة الأنشطة أو لوحة التحكم
+            // window.location.href = "dashboard.html";
+          })
+          .catch((error) => {
+            console.error("خطأ في تسجيل الدخول:", error.message);
+            alert("خطأ في تسجيل الدخول: " + error.message);
+          });
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="login-container">
+    <h2>تسجيل الدخول</h2>
+    <form id="login-form">
+      <label for="email">البريد الإلكتروني</label>
+      <input type="email" id="email" placeholder="أدخل بريدك الإلكتروني" required>
+      <label for="password">كلمة المرور</label>
+      <input type="password" id="password" placeholder="أدخل كلمة المرور" required>
+      <button type="submit">دخول</button>
+    </form>
+  </div>
+</body>
+</html>

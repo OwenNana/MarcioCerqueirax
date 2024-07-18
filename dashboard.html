@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>لوحة المستخدم - تسجيل الأنشطة والتقرير الأسبوعي</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+  <!-- تحميل مكتبات Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      margin: 0;
+      padding: 20px;
+      background-color: #ecf0f1;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #2980b9;
+    }
+    form {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select, button {
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    button {
+      background: #2980b9;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #1c5980;
+    }
+    hr {
+      margin: 30px 0;
+      border: none;
+      border-bottom: 1px solid #ccc;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #2980b9;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>سجل الأنشطة اليومية</h2>
+    <!-- نموذج تسجيل الأنشطة -->
+    <form id="activity-form">
+      <label for="date">التاريخ:</label>
+      <input type="date" id="date" required>
+      
+      <!-- الحاوية التي سيتم فيها إنشاء حقول التقييم ديناميكيًا -->
+      <div id="evaluation-fields-container">
+        <!-- ستظهر هنا الحقول بعد تحميل الإعدادات -->
+      </div>
+      <button type="submit">حفظ الأنشطة</button>
+    </form>
+    
+    <!-- زر لتحميل وعرض سجلات المستخدم اليومية -->
+    <button id="load-records-btn">عرض سجلاتي اليومية</button>
+    <!-- مكان عرض السجلات -->
+    <div id="recordsContainer"></div>
+    
+    <hr/>
+    
+    <!-- قسم التقرير الأسبوعي -->
+    <h2>تقرير الأداء الأسبوعي</h2>
+    <form id="weekly-report-form">
+      <label for="week-start-date">تاريخ البداية:</label>
+      <input type="date" id="week-start-date" required>
+      <label for="week-end-date">تاريخ النهاية:</label>
+      <input type="date" id="week-end-date" required>
+      <button type="submit">عرض التقرير الأسبوعي</button>
+    </form>
+    <div id="weekly-report-container"></div>
+  </div>
+  
+  <script>
+    // إعدادات Firebase – استبدل القيم التالية بقيم مشروعك
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY_HERE",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // تهيئة Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // التأكد من أن المستخدم مسجل الدخول، وإلا يتم إعادة التوجيه إلى صفحة تسجيل الدخول
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = "index.html";
+      }
+    });
+
+    // عند تحميل الصفحة تعيين التاريخ الحالي في الحقل الافتراضي
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentDate = new Date().toISOString().split('T')[0];
+      document.getElementById('date').value = currentDate;
+      loadEvaluationFields(); // تحميل البنود من قاعدة البيانات لتوليد حقول التقييم
+    });
+
+    // تُستخدم هذه الدالة لتحميل قائمة البنود (Evaluation Fields) من مستند الإعدادات
+    let evaluationFields = []; // متغير لتخزين أسماء الحقول
+    function loadEvaluationFields() {
+      db.collection("config").doc("evaluation_fields").get()
+        .then(doc => {
+          if (doc.exists) {
+            // نفترض أن المستند يحتوي على حقل "fields": ["prayer", "charity", "quran", "night", ...]
+            evaluationFields = doc.data().fields;
+            generateEvaluationFormFields(evaluationFields);
+          } else {
+            console.log("لم يتم العثور على إعدادات البنود");
+            document.getElementById("evaluation-fields-container").innerHTML = "<p>لم يتم العثور على إعدادات البنود.</p>";
+          }
+        })
+        .catch(err => {
+          console.error("خطأ أثناء تحميل إعدادات البنود:", err);
+        });
+    }
+
+    // دالة لإنشاء حقول التقييم ديناميكيًا في النموذج
+    function generateEvaluationFormFields(fields) {
+      const container = document.getElementById("evaluation-fields-container");
+      container.innerHTML = "";
+      fields.forEach(field => {
+        // إنشاء عنصر label
+        let label = document.createElement("label");
+        label.textContent = field + ":";
+        label.setAttribute("for", field);
+        container.appendChild(label);
+        
+        // إنشاء عنصر select مع خيارات التقييم من 1 إلى 10
+        let select = document.createElement("select");
+        select.id = field;
+        select.required = true;
+        let placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        placeholder.textContent = "اختر التقييم";
+        select.appendChild(placeholder);
+        for (let i = 1; i <= 10; i++) {
+          let option = document.createElement("option");
+          option.value = i;
+          option.textContent = i;
+          select.appendChild(option);
+        }
+        container.appendChild(select);
+      });
+    }
+
+    // دالة للحصول على جميع المفاتيح (الأعمدة) الفريدة من مجموعة السجلات (للجداول الديناميكية)
+    function getAllUniqueKeys(records) {
+      const keys = new Set();
+      records.forEach(record => {
+        Object.keys(record).forEach(key => keys.add(key));
+      });
+      return Array.from(keys);
+    }
+
+    // دالة لإنشاء جدول HTML ديناميكي يعرض السجلات بناءً على المفاتيح
+    function createDynamicTable(records) {
+      if (!records.length) {
+        return "<p>لا توجد بيانات لعرضها.</p>";
+      }
+      const headers = getAllUniqueKeys(records);
+      let tableHtml = "<table><thead><tr>";
+      headers.forEach(header => {
+        tableHtml += `<th>${header}</th>`;
+      });
+      tableHtml += "</tr></thead><tbody>";
+      records.forEach(record => {
+        tableHtml += "<tr>";
+        headers.forEach(header => {
+          tableHtml += `<td>${record[header] !== undefined ? record[header] : ''}</td>`;
+        });
+        tableHtml += "</tr>";
+      });
+      tableHtml += "</tbody></table>";
+      return tableHtml;
+    }
+
+    // عند تقديم نموذج تسجيل الأنشطة اليومية يتم الحصول على جميع قيم الحقول الديناميكية وحفظها
+    document.getElementById('activity-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const date = document.getElementById('date').value;
+      let recordData = { date: date };
+      
+      // استخدام المتغير evaluationFields الذي يحتوي على أسماء البنود
+      evaluationFields.forEach(field => {
+        const value = document.getElementById(field).value;
+        recordData[field] = Number(value);
+      });
+      
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        alert("المستخدم غير مسجل");
+        return;
+      }
+      
+      // حفظ البيانات في Firestore تحت المسار: users/{uid}/dailyRecords/{date}
+      db.collection("users").doc(user.uid)
+        .collection("dailyRecords").doc(date)
+        .set(recordData)
+        .then(() => {
+          alert("تم حفظ الأنشطة!");
+          document.getElementById('activity-form').reset();
+          document.getElementById('date').value = date;
+          loadUserRecords(); // يمكن تحديث عرض السجلات بعد الحفظ
+        })
+        .catch(error => {
+          console.error("Error saving record: ", error);
+          alert("حدث خطأ أثناء حفظ البيانات: " + error.message);
+        });
+    });
+
+    // دالة لتحميل سجلات المستخدم وعرضها باستخدام الجدول الديناميكي
+    function loadUserRecords() {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        alert("المستخدم غير مسجل");
+        return;
+      }
+      db.collection("users").doc(user.uid).collection("dailyRecords")
+        .orderBy("date", "desc")
+        .get()
+        .then(querySnapshot => {
+          let records = [];
+          querySnapshot.forEach(doc => {
+            records.push(doc.data());
+          });
+          document.getElementById("recordsContainer").innerHTML = createDynamicTable(records);
+        })
+        .catch(error => {
+          alert("حدث خطأ أثناء تحميل السجلات: " + error.message);
+        });
+    }
+
+    // مستمع لنقر زر تحميل السجلات اليومية
+    document.getElementById('load-records-btn').addEventListener('click', loadUserRecords);
+
+    // دالة تحميل التقرير الأسبوعي: تجميع سجلات المستخدم خلال الفترة المحددة وعرض الجدول الديناميكي
+    document.getElementById("weekly-report-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const weekStart = document.getElementById("week-start-date").value;
+      const weekEnd = document.getElementById("week-end-date").value;
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        alert("المستخدم غير مسجل");
+        return;
+      }
+      db.collection("users").doc(user.uid).collection("dailyRecords")
+        .where("date", ">=", weekStart)
+        .where("date", "<=", weekEnd)
+        .get()
+        .then(querySnapshot => {
+          let aggregated = {};
+          querySnapshot.forEach(doc => {
+            const data = doc.data();
+            Object.keys(data).forEach(key => {
+              if (key === "date") return; // تجاهل عمود التاريخ
+              const val = Number(data[key]);
+              if (!isNaN(val)) {
+                aggregated[key] = aggregated[key] ? aggregated[key] + val : val;
+              }
+            });
+          });
+          // إضافة حقل يُظهر الفترة
+          aggregated["الفترة"] = weekStart + " - " + weekEnd;
+          const aggregatedArray = [aggregated];
+          document.getElementById("weekly-report-container").innerHTML = createDynamicTable(aggregatedArray);
+        })
+        .catch(error => {
+          alert("حدث خطأ أثناء تحميل التقرير الأسبوعي: " + error.message);
+        });
+    });
+  </script>
+</body>
+</html>
