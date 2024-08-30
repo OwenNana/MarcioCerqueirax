@@ -2,3 +2,4 @@ flask
 gspread
 oauth2client
 streamlit
+gunicorn
