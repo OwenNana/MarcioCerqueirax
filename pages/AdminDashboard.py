@@ -30,15 +30,14 @@ st.dataframe(df)
 # ===== إنشاء مستخدم جديد =====
 st.subheader("➕ إنشاء حساب جديد")
 with st.form("create_user_form"):
-    username = st.text_input("اسم المستخدم (الإيميل)")
+    username = st.text_input("اسم المستخدم")
     password = st.text_input("كلمة المرور")
     create = st.form_submit_button("إنشاء")
 
     if create:
         if username and password:
             new_sheet = client.create(f"بيانات - {username}")
-            new_sheet.share(username, perm_type='user', role='writer')
-            url = new_sheet.url
+            url = new_sheet.url  # بدون مشاركة الشيت
             sheet.append_row([username, password, url, "user"])
             st.success("✅ تم إنشاء الحساب بنجاح")
             st.rerun()
