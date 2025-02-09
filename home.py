@@ -54,7 +54,10 @@ if not st.session_state["authenticated"]:
 
 # ===== إعادة التوجيه =====
 if st.session_state.get("authenticated"):
-    if st.session_state.get("permissions") == "admin":
+    permission = st.session_state.get("permissions")
+    if permission == "admin":
         st.switch_page("pages/AdminDashboard.py")
+    elif permission == "supervisor":
+        st.switch_page("pages/SupervisorDashboard.py")
     else:
         st.switch_page("pages/UserDashboard.py")
