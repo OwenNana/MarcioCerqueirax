@@ -10,8 +10,11 @@ creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
 creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
 client = gspread.authorize(creds)
 
+# ===== إعدادات الشيت الرئيسي =====
 ADMIN_SHEET_ID = "1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY"
-sheet = client.open_by_key(ADMIN_SHEET_ID).worksheet("admin")
+spreadsheet = client.open_by_key(ADMIN_SHEET_ID)
+admin_sheet = spreadsheet.worksheet("admin")
+users_df = pd.DataFrame(admin_sheet.get_all_records())
 
 st.set_page_config(page_title="لوحة الأدمن", page_icon="🛠️")
 st.title("🛠️ لوحة إدارة المستخدمين")
@@ -23,23 +26,51 @@ if st.session_state.get("permissions") != "admin":
 
 # ===== عرض المستخدمين =====
 st.subheader("📋 قائمة المستخدمين")
-data = sheet.get_all_records()
+data = admin_sheet.get_all_records()
 df = pd.DataFrame(data)
 st.dataframe(df)
+
+# ===== الأعمدة الافتراضية لكل مستخدم جديد =====
+def get_default_columns():
+    return [
+        "التاريخ",
+        "ورد النووي",
+        "مختصر الإشراق",
+        "الضحى",
+        "التهليل",
+        "استغفار",
+        "صلاة على الحبيب",
+        "السنن الرواتب",
+        "تلاوة قرآن (لا يقل عن ثمن)",
+        "حضور درس",
+        "قراءة كتاب",
+        "الوتر",
+        "دعاء",
+        "صلاة الفجر",
+        "صلاة الظهر",
+        "صلاة العصر",
+        "صلاة المغرب",
+        "صلاة العشاء"
+    ]
 
 # ===== إنشاء مستخدم جديد =====
 st.subheader("➕ إنشاء حساب جديد")
 with st.form("create_user_form"):
     username = st.text_input("اسم المستخدم")
     password = st.text_input("كلمة المرور")
+    role = st.selectbox("الصلاحية", ["user", "supervisor"])
     create = st.form_submit_button("إنشاء")
 
     if create:
-        if username and password:
-            new_sheet = client.create(f"بيانات - {username}")
-            url = new_sheet.url  # بدون مشاركة الشيت
-            sheet.append_row([username, password, url, "user"])
-            st.success("✅ تم إنشاء الحساب بنجاح")
-            st.rerun()
-        else:
+        if not username or not password:
             st.warning("يرجى إدخال اسم المستخدم وكلمة المرور")
+        elif username in users_df["اسم المستخدم"].values:
+            st.error("🚫 اسم المستخدم موجود مسبقًا")
+        else:
+            worksheet_name = f"بيانات - {username}"
+            worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows="1000", cols="30")
+            columns = get_default_columns()
+            worksheet.insert_row(columns, 1)
+            admin_sheet.append_row([username, password, worksheet_name, role])
+            st.success("✅ تم إنشاء الحساب والورقة بنجاح")
+            st.rerun()
