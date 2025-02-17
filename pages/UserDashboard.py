@@ -11,43 +11,45 @@ creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
 creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
 client = gspread.authorize(creds)
 
-st.set_page_config(page_title="تقييم الأنشطة", page_icon="📊")
-st.title("📊 تقييم الأنشطة")
+# ===== إعداد الصفحة =====
+st.set_page_config(page_title="تقييم اليوم", page_icon="📋")
+st.title("📋 تقييم الأنشطة اليومية")
 
-# ===== تحقق من تسجيل الدخول =====
-if "sheet_url" not in st.session_state:
-    st.error("يجب تسجيل الدخول أولاً")
+# ===== تحقق من صلاحية المستخدم =====
+if "username" not in st.session_state or "sheet_url" not in st.session_state:
+    st.error("❌ يجب تسجيل الدخول أولاً.")
     st.stop()
 
-sheet_url = st.session_state["sheet_url"]
-sheet_id = sheet_url.split("/d/")[1].split("/")[0]
-sheet = client.open_by_key(sheet_id).sheet1
+username = st.session_state["username"]
+sheet_name = f"بيانات - {username}"
+spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
+worksheet = spreadsheet.worksheet(sheet_name)
 
-headers = sheet.row_values(1)
-if len(headers) < 2:
-    st.warning("لا توجد أنشطة في الشيت")
-    st.stop()
-
-activities = headers[1:]  # بدون العمود الأول (التاريخ)
+# ===== جلب الأعمدة من الصف الأول =====
+columns = worksheet.row_values(1)
 
 # ===== النموذج =====
-with st.form("rating_form"):
+with st.form("daily_form"):
     date = st.date_input("📅 التاريخ", datetime.today())
-    activity = st.selectbox("🎯 اختر النشاط", activities)
-    rating = st.slider("قيم من 1 إلى 10", 1, 10)
+    values = [date.strftime("%Y-%m-%d")]
+
+    for col in columns[1:]:  # تخطي "التاريخ"
+        value = st.text_input(f"{col}", key=col)
+        values.append(value)
+
     submit = st.form_submit_button("💾 حفظ")
 
     if submit:
-        values = sheet.col_values(1)
+        all_dates = worksheet.col_values(1)
         date_str = date.strftime("%Y-%m-%d")
 
-        # إيجاد الصف المناسب للتاريخ
         try:
-            row = values.index(date_str) + 1
+            row_index = all_dates.index(date_str) + 1
         except ValueError:
-            row = len(values) + 1
-            sheet.update_cell(row, 1, date_str)
+            row_index = len(all_dates) + 1
+            worksheet.update_cell(row_index, 1, date_str)
 
-        col_index = headers.index(activity) + 1
-        sheet.update_cell(row, col_index, rating)
-        st.success("✅ تم حفظ التقييم")
+        for i, val in enumerate(values[1:], start=2):
+            worksheet.update_cell(row_index, i, val)
+
+        st.success("✅ تم حفظ البيانات بنجاح")
