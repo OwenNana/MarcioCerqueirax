@@ -20,6 +20,17 @@ if "username" not in st.session_state or "sheet_url" not in st.session_state:
     st.error("❌ يجب تسجيل الدخول أولاً.")
     st.stop()
 
+if st.session_state["permissions"] != "user":
+    if st.session_state["permissions"] == "admin":
+        st.warning("👤 تم تسجيل الدخول كأدمن، سيتم تحويلك للوحة التحكم...")
+        st.switch_page("pages/AdminDashboard.py")
+    elif st.session_state["permissions"] == "supervisor":
+        st.warning("👤 تم تسجيل الدخول كمشرف، سيتم تحويلك للتقارير...")
+        st.switch_page("pages/SupervisorDashboard.py")
+    else:
+        st.error("⚠️ الصلاحية غير معروفة.")
+    st.stop()
+
 username = st.session_state["username"]
 sheet_name = f"بيانات - {username}"
 spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
