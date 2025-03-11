@@ -33,24 +33,24 @@ if "authenticated" not in st.session_state:
 if not st.session_state["authenticated"]:
     with st.form("login_form"):
         username = st.text_input("اسم المستخدم")
-        password = st.text_input("كلمة السر", type="password")
+        password = st.text_input("كلمة المرور", type="password")
         submitted = st.form_submit_button("دخول")
 
         if submitted:
             matched = users_df[
-                (users_df["اسم المستخدم"] == username) &
-                (users_df["كلمة السر"] == password)
+                (users_df["username"] == username) &
+                (users_df["password"] == password)
             ]
             if not matched.empty:
                 user_row = matched.iloc[0]
                 st.session_state["authenticated"] = True
                 st.session_state["username"] = username
-                st.session_state["sheet_url"] = user_row["رابط الشيت"]
-                st.session_state["permissions"] = user_row["الصلاحيات"]
+                st.session_state["sheet_url"] = user_row["sheet_name"]
+                st.session_state["permissions"] = user_row["role"]
                 st.success("✅ تم تسجيل الدخول")
                 st.rerun()
             else:
-                st.error("❌ اسم المستخدم أو كلمة السر غير صحيحة")
+                st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
 
 # ===== إعادة التوجيه =====
 if st.session_state.get("authenticated"):
