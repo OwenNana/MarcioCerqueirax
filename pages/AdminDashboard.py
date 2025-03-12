@@ -56,21 +56,21 @@ def get_default_columns():
 # ===== إنشاء مستخدم جديد =====
 st.subheader("➕ إنشاء حساب جديد")
 with st.form("create_user_form"):
-    username = st.text_input("اسم المستخدم")
-    password = st.text_input("كلمة المرور")
-    role = st.selectbox("الصلاحية", ["user", "supervisor"])
-    create = st.form_submit_button("إنشاء")
+    username = st.text_input("Username")
+    password = st.text_input("Password")
+    role = st.selectbox("Role", ["user", "supervisor"])
+    create = st.form_submit_button("Create")
 
     if create:
         if not username or not password:
-            st.warning("يرجى إدخال اسم المستخدم وكلمة المرور")
-        elif username in users_df["اسم المستخدم"].values:
-            st.error("🚫 اسم المستخدم موجود مسبقًا")
+            st.warning("Please enter a username and password")
+        elif username in users_df["username"].values:
+            st.error("🚫 Username already exists")
         else:
             worksheet_name = f"بيانات - {username}"
             worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows="1000", cols="30")
             columns = get_default_columns()
             worksheet.insert_row(columns, 1)
             admin_sheet.append_row([username, password, worksheet_name, role])
-            st.success("✅ تم إنشاء الحساب والورقة بنجاح")
+            st.success("✅ User and worksheet created successfully")
             st.rerun()
