@@ -26,7 +26,7 @@ st.markdown("""
 
 <div style="text-align: center; margin-top: 20px;">
     <a href="https://joghaiman.streamlit.app/" target="_blank">
-        <img class="responsive-logo" src="https://drive.google.com/thumbnail?id=1A1CWLrvWLqMN6uZXe8VyJmopV7o4PCns" alt="الصفحة الرئيسية">
+        <img class="responsive-logo" src="https://drive.google.com/thumbnail?id=1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY" alt="الصفحة الرئيسية">
     </a>
 </div>
 """, unsafe_allow_html=True)
