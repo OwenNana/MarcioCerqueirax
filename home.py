@@ -23,7 +23,7 @@ st.markdown("""
 <div style='text-align: center;'>
     <h1 style='font-size: 70px;'>🗂️</h1>
     <h2>تسجيل الدخول</h2>
-    <p style='color: gray;'>جلب المعلومات من قاعدة البيانات</p>
+    <p style='color: gray;'>حاسبوا أنفسكم قبل أن تحاسبوا</p>
 </div>
 """, unsafe_allow_html=True)
 
