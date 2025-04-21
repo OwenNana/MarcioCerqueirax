@@ -1,15 +1,13 @@
 import plotly.graph_objects as go
-import io
 import streamlit as st
 import pandas as pd
 import gspread
-from collections import OrderedDict
 from google.oauth2.service_account import Credentials
-from streamlit_plotly_events import plotly_events
 
-# إعداد صفحة Streamlit
-st.set_page_config(layout="wide", page_title="🌳 ")
+# ===== إعداد صفحة Streamlit =====
+st.set_page_config(layout="wide", page_title="📊 جلب المعلومات")
 
+# ===== شعار قابل للنقر =====
 st.markdown("""
 <style>
 @media (max-width: 768px) {
@@ -23,15 +21,14 @@ st.markdown("""
     }
 }
 </style>
-
 <div style="text-align: center; margin-top: 20px;">
-    <a href="https://joghaiman.streamlit.app/" target="_blank">
+    <a href="https://self-discipline.streamlit.app/" target="_blank">
         <img class="responsive-logo" src="https://drive.google.com/thumbnail?id=1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY" alt="الصفحة الرئيسية">
     </a>
 </div>
 """, unsafe_allow_html=True)
 
-
+# ===== تنسيقات إضافية =====
 st.markdown("""
 <style>
 div[data-testid="stCheckbox"] > label {
@@ -60,29 +57,22 @@ html, body, .main { background-color: #ffffff !important; }
 </style>
 """, unsafe_allow_html=True)
 
+# ===== تحميل البيانات من Google Sheets =====
 @st.cache_data
 def load_data():
     SCOPE = ["https://spreadsheets.google.com/feeds","https://www.googleapis.com/auth/drive"]
-    info = st.secrets["gcp_service_account"]
-    creds = Credentials.from_service_account_info(info, scopes=SCOPE)
+    creds_dict = st.secrets["GOOGLE_SHEETS_CREDENTIALS"]
+    creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
     client = gspread.authorize(creds)
-    SHEET_ID = "1KhHhAInhJGV3NO0YDZjgg86O_0KbBl5aRuXfVIpsfkU"
-    sheet = client.open_by_key(SHEET_ID).sheet1
+    SHEET_ID = "1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY"  # الشيت الرئيسي الحالي
+    sheet = client.open_by_key(SHEET_ID).worksheet("admin")
     data = sheet.get_all_records()
     df = pd.DataFrame(data)
-    df["order"] = df.index
-    df = df.loc[:, ~df.columns.str.match(r'^\d+$')]
-    df = df.rename(columns={
-        'ID': 'id', 
-        'Full Name': 'name', 
-        'Sex (M/F)': 'gender',
-        'Father ID': 'father_id', 
-        'Date of Birth': 'birth', 
-        'Date of Death': 'death'
-    })
     return df
 
+# ===== عرض البيانات =====
 data = load_data()
+st.dataframe(data)
 
 if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_top"):
     st.cache_data.clear()
