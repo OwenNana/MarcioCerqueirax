@@ -1,4 +1,3 @@
-import plotly.graph_objects as go
 import streamlit as st
 import pandas as pd
 import gspread
@@ -6,6 +5,7 @@ from google.oauth2.service_account import Credentials
 
 # ===== إعداد صفحة Streamlit =====
 st.set_page_config(layout="wide", page_title="📊 جلب المعلومات")
+st.title("📊 معلومات المستخدمين")
 
 # ===== شعار قابل للنقر =====
 st.markdown("""
@@ -28,34 +28,10 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ===== تنسيقات إضافية =====
-st.markdown("""
-<style>
-div[data-testid="stCheckbox"] > label {
-    display: flex;
-    justify-content: center;
-    font-size: 20px !important;
-    color: #ff0000 !important;
-    font-weight: bold;
-    margin: 10px auto;
-}
-html, body, .main { background-color: #ffffff !important; }
-.zoom-container {
-    display: flex !important;
-    justify-content: center !important;
-    gap: 15px !important;
-    margin-top: 20px !important;
-}
-.selected-card {
-    padding: 25px;
-    border-radius: 18px;
-    border: 3px solid #28a745 !important;
-    box-shadow: 0 0 15px rgba(40,167,69,0.5);
-    margin-top: 10px;
-    transition: 0.3s ease;
-}
-</style>
-""", unsafe_allow_html=True)
+# ===== التحقق من الصلاحية =====
+if st.session_state.get("permissions") != "admin":
+    st.error("🚫 هذه الصفحة مخصصة للأدمن فقط")
+    st.stop()
 
 # ===== تحميل البيانات من Google Sheets =====
 @st.cache_data
@@ -64,7 +40,7 @@ def load_data():
     creds_dict = st.secrets["GOOGLE_SHEETS_CREDENTIALS"]
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
     client = gspread.authorize(creds)
-    SHEET_ID = "1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY"  # الشيت الرئيسي الحالي
+    SHEET_ID = "1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY"
     sheet = client.open_by_key(SHEET_ID).worksheet("admin")
     data = sheet.get_all_records()
     df = pd.DataFrame(data)
