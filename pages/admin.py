@@ -28,11 +28,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ===== التحقق من الصلاحية =====
-if st.session_state.get("permissions") != "admin":
-    st.error("🚫 هذه الصفحة مخصصة للأدمن فقط")
-    st.stop()
-
 # ===== تحميل البيانات من Google Sheets =====
 @st.cache_data
 def load_data():
