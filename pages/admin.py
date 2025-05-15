@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import gspread
+import json
 from google.oauth2.service_account import Credentials
 
 # ===== إعداد صفحة Streamlit =====
@@ -31,8 +32,8 @@ st.markdown("""
 # ===== تحميل البيانات من Google Sheets =====
 @st.cache_data
 def load_data():
-    SCOPE = ["https://spreadsheets.google.com/feeds","https://www.googleapis.com/auth/drive"]
-    creds_dict = st.secrets["GOOGLE_SHEETS_CREDENTIALS"]
+    SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
     client = gspread.authorize(creds)
     SHEET_ID = "1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY"
