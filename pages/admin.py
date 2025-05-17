@@ -42,11 +42,11 @@ def load_data():
     df = pd.DataFrame(data)
     return df
 
-# ===== عرض البيانات =====
+# ===== جلب البيانات دون عرضها =====
 data = load_data()
-st.dataframe(data)
 
+# ===== زر التحديث فقط =====
 if st.button("🔄 جلب المعلومات من قاعدة البيانات", key="refresh_top"):
     st.cache_data.clear()
     data = load_data()
-    st.rerun()
+    st.success("✅ تم جلب البيانات بنجاح")
