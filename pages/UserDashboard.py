@@ -50,6 +50,8 @@ with st.form("daily_form"):
             color: #800000;
             font-weight: bold;
             font-size: 18px;
+            text-align: right;
+            direction: rtl;
         }
         .stSelectbox > div[data-baseweb="select"] {
             min-height: 38px !important;
@@ -58,7 +60,7 @@ with st.form("daily_form"):
     """, unsafe_allow_html=True)
 
     for col in columns[1:]:  # تخطي "التاريخ"
-        left, right = st.columns([2, 1])
+        right, left = st.columns([1, 2])
         with left:
             st.markdown(f"<div class='activity-label'>{col}</div>", unsafe_allow_html=True)
         with right:
