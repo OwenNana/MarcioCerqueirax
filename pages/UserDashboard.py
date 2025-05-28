@@ -44,9 +44,26 @@ with st.form("daily_form"):
     date = st.date_input("📅 التاريخ", datetime.today())
     values = [date.strftime("%Y-%m-%d")]
 
+    st.markdown("""
+    <style>
+        .activity-label {
+            color: #800000;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .stSelectbox > div[data-baseweb="select"] {
+            min-height: 38px !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     for col in columns[1:]:  # تخطي "التاريخ"
-        value = st.text_input(f"{col}", key=col)
-        values.append(value)
+        left, right = st.columns([2, 1])
+        with left:
+            st.markdown(f"<div class='activity-label'>{col}</div>", unsafe_allow_html=True)
+        with right:
+            value = st.selectbox("", [""] + [str(i) for i in range(1, 11)], key=col)
+            values.append(value)
 
     submit = st.form_submit_button("💾 حفظ")
 
