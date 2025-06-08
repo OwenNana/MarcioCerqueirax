@@ -46,26 +46,39 @@ with st.form("daily_form"):
 
     st.markdown("""
     <style>
+        .row-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .gray-row { background-color: #f2f2f2; }
+        .blue-row { background-color: #e8f4fc; }
         .activity-label {
             color: #800000;
             font-weight: bold;
             font-size: 18px;
             text-align: right;
             direction: rtl;
+            margin: 0;
+            flex: 1;
         }
-        .stSelectbox > div[data-baseweb="select"] {
-            min-height: 38px !important;
+        .select-box-container {
+            flex: 0;
+            min-width: 80px;
         }
     </style>
     """, unsafe_allow_html=True)
 
-    for col in columns[1:]:  # تخطي "التاريخ"
-        right, left = st.columns([1, 2])
-        with left:
-            st.markdown(f"<div class='activity-label'>{col}</div>", unsafe_allow_html=True)
-        with right:
-            value = st.selectbox("", [""] + [str(i) for i in range(1, 11)], key=col)
-            values.append(value)
+    for i, col in enumerate(columns[1:]):  # تخطي "التاريخ"
+        row_class = "gray-row" if i % 2 == 0 else "blue-row"
+        st.markdown(f"<div class='row-container {row_class}'>", unsafe_allow_html=True)
+        st.markdown(f"<div class='activity-label'>{col}</div>", unsafe_allow_html=True)
+        value = st.selectbox("", [""] + [str(n) for n in range(1, 11)], key=col, label_visibility="collapsed")
+        st.markdown("</div>", unsafe_allow_html=True)
+        values.append(value)
 
     submit = st.form_submit_button("💾 حفظ")
 
