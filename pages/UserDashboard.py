@@ -13,6 +13,13 @@ client = gspread.authorize(creds)
 
 # ===== إعداد الصفحة =====
 st.set_page_config(page_title="تقييم اليوم", page_icon="📋")
+st.markdown("""
+    <style>
+        body, .stApp {
+            background-color: white !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 st.title("📋 تقييم الأنشطة اليومية")
 
 # ===== تحقق من صلاحية المستخدم =====
