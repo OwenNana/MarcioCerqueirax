@@ -15,7 +15,11 @@ client = gspread.authorize(creds)
 st.set_page_config(page_title="تقييم اليوم", page_icon="📋")
 st.markdown("""
     <style>
-        body, .stApp {
+        html, body, [data-testid="stApp"] {
+            background-color: white !important;
+            color: black !important;
+        }
+        .block-container {
             background-color: white !important;
         }
         .activity-label {
@@ -32,6 +36,7 @@ st.markdown("""
         }
         .stSelectbox > div[data-baseweb="select"] {
             background-color: white !important;
+            color: black !important;
         }
     </style>
 """, unsafe_allow_html=True)
