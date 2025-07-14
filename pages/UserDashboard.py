@@ -5,6 +5,10 @@ import json
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 
+# ===== إعادة التوجيه إلى صفحة تسجيل الدخول إذا لم يتم تسجيل الدخول =====
+if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
+    st.switch_page("home.py")
+
 # ===== الاتصال بـ Google Sheets =====
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
@@ -75,7 +79,7 @@ with st.form("daily_form"):
     for col in columns[1:]:  # تخطي "التاريخ"
         st.markdown(f"<div class='activity-label'>{col}</div>", unsafe_allow_html=True)
         with st.container():
-            value = st.selectbox("", [""] + [str(n) for n in range(1, 11)], key=col, label_visibility="collapsed")
+            value = st.selectbox("", ["" ] + [str(n) for n in range(1, 11)], key=col, label_visibility="collapsed")
             values.append(value)
 
     submit = st.form_submit_button("💾 حفظ")
