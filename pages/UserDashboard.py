@@ -33,15 +33,6 @@ st.markdown("""
             text-align: center;
             margin-bottom: 4px;
         }
-        .select-wrapper {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 16px;
-        }
-        .stSelectbox > div[data-baseweb="select"] {
-            background-color: white !important;
-            color: black !important;
-        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -78,9 +69,8 @@ with st.form("daily_form"):
 
     for col in columns[1:]:  # تخطي "التاريخ"
         st.markdown(f"<div class='activity-label'>{col}</div>", unsafe_allow_html=True)
-        with st.container():
-            value = st.selectbox("", ["" ] + [str(n) for n in range(1, 11)], key=col, label_visibility="collapsed")
-            values.append(value)
+        rating = st.slider("", min_value=1, max_value=10, value=5, key=col, format="%d")
+        values.append(str(rating))
 
     submit = st.form_submit_button("💾 حفظ")
 
