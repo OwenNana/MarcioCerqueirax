@@ -3,7 +3,7 @@ import gspread
 import pandas as pd
 import json
 from google.oauth2.service_account import Credentials
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # ===== إعادة التوجيه إلى صفحة تسجيل الدخول إذا لم يتم تسجيل الدخول =====
 if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
@@ -64,7 +64,14 @@ columns = worksheet.row_values(1)
 
 # ===== النموذج =====
 with st.form("daily_form"):
-    date = st.date_input("📅 التاريخ", datetime.today())
+    today = datetime.today().date()
+    allowed_dates = [today - timedelta(days=i) for i in range(3)]  # اليوم ويومان قبله
+    date = st.date_input("📅 التاريخ", today)
+
+    if date not in allowed_dates:
+        st.warning("⚠️ يمكنك إدخال البيانات لليوم الحالي أو يومين سابقين فقط.")
+        st.stop()
+
     values = [date.strftime("%Y-%m-%d")]
 
     for col in columns[1:]:  # تخطي "التاريخ"
