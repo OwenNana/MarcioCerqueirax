@@ -33,6 +33,9 @@ st.markdown("""
             text-align: center;
             margin-bottom: 4px;
         }
+        .stButton {
+            font-size: 16px;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -70,14 +73,26 @@ with st.form("daily_form"):
 
     if date not in allowed_dates:
         st.warning("⚠️ يمكنك إدخال البيانات لليوم الحالي أو يومين سابقين فقط.")
-        st.stop()
+        st.stop()  # منع إضافة البيانات إذا كانت غير صالحة
+
+    # زر العودة إلى اليوم الحالي
+    if st.button("🔙 العودة إلى اليوم الحالي"):
+        st.session_state["date"] = today
+        st.experimental_rerun()  # إعادة تحميل الصفحة بتاريخ اليوم الحالي
 
     values = [date.strftime("%Y-%m-%d")]
 
     for col in columns[1:]:  # تخطي "التاريخ"
         st.markdown(f"<div class='activity-label'>{col}</div>", unsafe_allow_html=True)
-        rating = st.slider("", min_value=1, max_value=10, value=5, key=col, format="%d")
-        values.append(str(rating))
+
+        # استخدام شريط النجوم لتقييم النشاط
+        rating = st.select_slider(
+            "",
+            options=[f"{'⭐' * i}" for i in range(1, 11)],
+            key=col,
+            label_visibility="collapsed"
+        )
+        values.append(rating)
 
     submit = st.form_submit_button("💾 حفظ")
 
