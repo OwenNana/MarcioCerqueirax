@@ -33,9 +33,6 @@ st.markdown("""
             text-align: center;
             margin-bottom: 4px;
         }
-        .stButton {
-            font-size: 16px;
-        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -76,7 +73,7 @@ with st.form("daily_form"):
         st.stop()  # منع إضافة البيانات إذا كانت غير صالحة
 
     # زر العودة إلى اليوم الحالي
-    if st.button("🔙 العودة إلى اليوم الحالي"):
+    if st.form_submit_button("🔙 العودة إلى اليوم الحالي"):
         st.session_state["date"] = today
         st.experimental_rerun()  # إعادة تحميل الصفحة بتاريخ اليوم الحالي
 
