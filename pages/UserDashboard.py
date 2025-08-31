@@ -33,6 +33,9 @@ st.markdown("""
             text-align: center;
             margin-bottom: 4px;
         }
+        .stButton {
+            font-size: 16px;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -70,28 +73,39 @@ with st.form("daily_form"):
 
     if date not in allowed_dates:
         st.warning("⚠️ يمكنك إدخال البيانات لليوم الحالي أو يومين سابقين فقط.")
-        st.stop()
 
     values = [date.strftime("%Y-%m-%d")]
 
     for col in columns[1:]:  # تخطي "التاريخ"
         st.markdown(f"<div class='activity-label'>{col}</div>", unsafe_allow_html=True)
-        rating = st.slider("", min_value=1, max_value=10, value=5, key=col, format="%d")
+
+        # استخدام شريط الأرقام لتقييم النشاط
+        rating = st.slider(
+            "",
+            min_value=1,
+            max_value=10,
+            value=5,
+            key=col,
+            format="%d"
+        )
         values.append(str(rating))
 
     submit = st.form_submit_button("💾 حفظ")
 
     if submit:
-        all_dates = worksheet.col_values(1)
-        date_str = date.strftime("%Y-%m-%d")
+        if date not in allowed_dates:
+            st.error("❌ التاريخ غير صالح. لا يمكن حفظ البيانات لغير اليوم أو اليومين السابقين.")
+        else:
+            all_dates = worksheet.col_values(1)
+            date_str = date.strftime("%Y-%m-%d")
 
-        try:
-            row_index = all_dates.index(date_str) + 1
-        except ValueError:
-            row_index = len(all_dates) + 1
-            worksheet.update_cell(row_index, 1, date_str)
+            try:
+                row_index = all_dates.index(date_str) + 1
+            except ValueError:
+                row_index = len(all_dates) + 1
+                worksheet.update_cell(row_index, 1, date_str)
 
-        for i, val in enumerate(values[1:], start=2):
-            worksheet.update_cell(row_index, i, val)
+            for i, val in enumerate(values[1:], start=2):
+                worksheet.update_cell(row_index, i, val)
 
-        st.success("✅ تم حفظ البيانات بنجاح")
+            st.success("✅ تم حفظ البيانات بنجاح")
