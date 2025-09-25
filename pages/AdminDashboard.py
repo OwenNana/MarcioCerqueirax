@@ -26,9 +26,10 @@ if st.session_state.get("permissions") != "admin":
 
 # ===== عرض المستخدمين =====
 st.subheader("📋 قائمة المستخدمين")
-data = admin_sheet.get_all_records()
-df = pd.DataFrame(data)
-st.dataframe(df)
+
+# تصفية الأعمدة لعرض فقط الأسماء والبيانات الضرورية
+filtered_df = users_df[["username", "role"]]
+st.dataframe(filtered_df)
 
 # ===== الأعمدة الافتراضية لكل مستخدم جديد =====
 def get_default_columns():
