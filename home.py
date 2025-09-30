@@ -30,6 +30,7 @@ st.markdown("""
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
+# ===== التحقق من تسجيل الدخول =====
 if not st.session_state["authenticated"]:
     with st.form("login_form"):
         username = st.text_input("اسم المستخدم")
@@ -52,7 +53,7 @@ if not st.session_state["authenticated"]:
             else:
                 st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
 
-# ===== إعادة التوجيه =====
+# ===== إعادة التوجيه حسب الصلاحية =====
 if st.session_state.get("authenticated"):
     permission = st.session_state.get("permissions")
     if permission == "admin":
