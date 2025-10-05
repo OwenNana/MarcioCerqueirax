@@ -24,7 +24,7 @@ st.markdown("""
 </style>
 <div style="text-align: center; margin-top: 20px;">
     <a href="https://self-discipline.streamlit.app/" target="_blank">
-        <img class="responsive-logo" src="https://drive.google.com/thumbnail?id=1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY" alt="الصفحة الرئيسية">
+        <img class="responsive-logo" src="https://self-discipline-emwsdnb4myfqwcr6cqrmic.streamlit.app/" alt="الصفحة الرئيسية">
     </a>
 </div>
 """, unsafe_allow_html=True)
