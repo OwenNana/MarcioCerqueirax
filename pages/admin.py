@@ -23,7 +23,7 @@ st.markdown("""
 }
 </style>
 <div style="text-align: center; margin-top: 20px;">
-    <a href="https://self-discipline.streamlit.app/" target="_blank">
+    <a href="https://self-discipline-emwsdnb4myfqwcr6cqrmic.streamlit.app/" target="_blank">
         <img class="responsive-logo" src="https://self-discipline-emwsdnb4myfqwcr6cqrmic.streamlit.app/" alt="الصفحة الرئيسية">
     </a>
 </div>
