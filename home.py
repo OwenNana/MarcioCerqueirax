@@ -4,33 +4,21 @@ import pandas as pd
 import json
 from google.oauth2.service_account import Credentials
 
-# ===== إعداد الاتصال بـ Google Sheets =====
+# ===== الاتصال بـ Google Sheets =====
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
 creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
 client = gspread.authorize(creds)
 
-# ===== إعدادات الشيت الرئيسي =====
-ADMIN_SHEET_ID = "1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY"
-admin_sheet = client.open_by_key(ADMIN_SHEET_ID).worksheet("admin")
-users_df = pd.DataFrame(admin_sheet.get_all_records())
-
-# ===== صفحة تسجيل الدخول =====
+# ===== إعداد صفحة تسجيل الدخول =====
 st.set_page_config(page_title="تسجيل الدخول", page_icon="🔐")
+st.title("🔐 تسجيل الدخول")
 
-# ✅ أيقونة + عنوان
-st.markdown("""
-<div style='text-align: center;'>
-    <h1 style='font-size: 70px;'>🗂️</h1>
-    <h2>تسجيل الدخول</h2>
-    <p style='color: gray;'>حاسبوا أنفسكم قبل أن تحاسبوا</p>
-</div>
-""", unsafe_allow_html=True)
-
+# تحقق من صلاحية المستخدم
 if "authenticated" not in st.session_state:
     st.session_state["authenticated"] = False
 
-# ===== التحقق من تسجيل الدخول =====
+# التحقق من تسجيل الدخول
 if not st.session_state["authenticated"]:
     with st.form("login_form"):
         username = st.text_input("اسم المستخدم")
@@ -49,16 +37,15 @@ if not st.session_state["authenticated"]:
                 st.session_state["sheet_url"] = user_row["sheet_name"]
                 st.session_state["permissions"] = user_row["role"]
                 st.success("✅ تم تسجيل الدخول")
-                st.rerun()
+                # إعادة التوجيه بناءً على الصلاحية
+                try:
+                    if st.session_state["permissions"] == "supervisor":
+                        st.switch_page("pages/SupervisorDashboard.py")
+                    elif st.session_state["permissions"] == "admin":
+                        st.switch_page("pages/AdminDashboard.py")
+                    else:
+                        st.switch_page("pages/UserDashboard.py")
+                except Exception as e:
+                    st.error(f"⚠️ حدث خطأ في التوجيه: {str(e)}")
             else:
                 st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
-
-# ===== إعادة التوجيه حسب الصلاحية =====
-if st.session_state.get("authenticated"):
-    permission = st.session_state.get("permissions")
-    if permission == "admin":
-        st.switch_page("pages/AdminDashboard.py")
-    elif permission == "supervisor":
-        st.switch_page("pages/SupervisorDashboard.py")
-    else:
-        st.switch_page("pages/UserDashboard.py")
