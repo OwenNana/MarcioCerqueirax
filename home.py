@@ -26,6 +26,11 @@ if not st.session_state["authenticated"]:
         submitted = st.form_submit_button("دخول")
 
         if submitted:
+            # جلب البيانات من شيت الأدمن
+            admin_sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY").worksheet("admin")
+            users_df = pd.DataFrame(admin_sheet.get_all_records())
+            
+            # التحقق من وجود المستخدم وكلمة المرور
             matched = users_df[
                 (users_df["username"] == username) &
                 (users_df["password"] == password)
@@ -37,15 +42,24 @@ if not st.session_state["authenticated"]:
                 st.session_state["sheet_url"] = user_row["sheet_name"]
                 st.session_state["permissions"] = user_row["role"]
                 st.success("✅ تم تسجيل الدخول")
+
                 # إعادة التوجيه بناءً على الصلاحية
-                try:
-                    if st.session_state["permissions"] == "supervisor":
-                        st.switch_page("pages/SupervisorDashboard.py")
-                    elif st.session_state["permissions"] == "admin":
-                        st.switch_page("pages/AdminDashboard.py")
-                    else:
-                        st.switch_page("pages/UserDashboard.py")
-                except Exception as e:
-                    st.error(f"⚠️ حدث خطأ في التوجيه: {str(e)}")
+                if st.session_state["permissions"] == "supervisor":
+                    st.switch_page("pages/SupervisorDashboard.py")
+                elif st.session_state["permissions"] == "admin":
+                    st.switch_page("pages/AdminDashboard.py")
+                else:
+                    st.switch_page("pages/UserDashboard.py")
             else:
                 st.error("❌ اسم المستخدم أو كلمة المرور غير صحيحة")
+else:
+    # إعادة التوجيه حسب الصلاحية
+    permission = st.session_state.get("permissions")
+    if permission == "supervisor":
+        st.switch_page("pages/SupervisorDashboard.py")
+    elif permission == "admin":
+        st.switch_page("pages/AdminDashboard.py")
+    elif permission == "user":
+        st.switch_page("pages/UserDashboard.py")
+    else:
+        st.error("⚠️ صلاحية غير معروفة.")
