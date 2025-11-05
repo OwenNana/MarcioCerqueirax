@@ -45,7 +45,7 @@ if not st.session_state["authenticated"]:
 
                 # إعادة التوجيه بناءً على الصلاحية
                 if st.session_state["permissions"] == "supervisor":
-                    st.switch_page("pages/SupervisorDashboard.py")
+                    st.switch_page("pages/Supervisor.py")
                 elif st.session_state["permissions"] == "admin":
                     st.switch_page("pages/AdminDashboard.py")
                 else:
@@ -56,7 +56,7 @@ else:
     # إعادة التوجيه حسب الصلاحية
     permission = st.session_state.get("permissions")
     if permission == "supervisor":
-        st.switch_page("pages/SupervisorDashboard.py")
+        st.switch_page("pages/Supervisor.py")
     elif permission == "admin":
         st.switch_page("pages/AdminDashboard.py")
     elif permission == "user":
