@@ -32,9 +32,16 @@ for sheet_url in user_sheets:
     try:
         # فتح الشيت باستخدام الرابط المخزن في العامود الثالث
         user_sheet = client.open_by_url(sheet_url)  # فتح الشيت باستخدام الرابط الفعلي
-        user_data = pd.DataFrame(user_sheet.get_all_records())
-        sheet_name = user_sheet.title  # الحصول على اسم الشيت
-        st.subheader(f"التقرير: {sheet_name}")
-        st.dataframe(user_data)
+        user_data = user_sheet.get_all_records()  # جلب البيانات
+        if not user_data:  # التحقق إذا كانت البيانات فارغة
+            st.warning(f"📄 الورقة {sheet_url} فارغة.")
+        else:
+            # تحويل البيانات إلى DataFrame إذا كانت موجودة
+            user_data_df = pd.DataFrame(user_data)
+            sheet_name = user_sheet.title  # الحصول على اسم الشيت
+            st.subheader(f"التقرير: {sheet_name}")
+            st.dataframe(user_data_df)
     except gspread.exceptions.WorksheetNotFound:
         st.error(f"❌ الورقة {sheet_url} غير موجودة.")
+    except Exception as e:
+        st.error(f"⚠️ حدث خطأ في جلب البيانات: {str(e)}")
