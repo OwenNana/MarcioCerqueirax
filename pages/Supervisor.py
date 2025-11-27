@@ -31,14 +31,16 @@ user_sheets = users_df["sheet_name"].values  # هنا نتعامل مع العا
 for sheet_url in user_sheets:
     try:
         # فتح الشيت باستخدام الرابط المخزن في العامود الثالث
-        user_sheet = client.open_by_url(sheet_url)  # فتح الشيت باستخدام الرابط الفعلي
-        user_data = user_sheet.get_all_records()  # جلب البيانات
-        if not user_data:  # التحقق إذا كانت البيانات فارغة
+        user_spreadsheet = client.open_by_url(sheet_url)  # فتح الشيت باستخدام الرابط الفعلي
+        # الوصول إلى الورقة الأولى (يمكنك التعديل إذا كان لديك أكثر من ورقة في الشيت)
+        user_worksheet = user_spreadsheet.get_worksheet(0)  
+        user_data = user_worksheet.get_all_records()  # جلب البيانات من الورقة الأولى
+        if not user_data:
             st.warning(f"📄 الورقة {sheet_url} فارغة.")
         else:
             # تحويل البيانات إلى DataFrame إذا كانت موجودة
             user_data_df = pd.DataFrame(user_data)
-            sheet_name = user_sheet.title  # الحصول على اسم الشيت
+            sheet_name = user_spreadsheet.title  # الحصول على اسم الشيت
             st.subheader(f"التقرير: {sheet_name}")
             st.dataframe(user_data_df)
     except gspread.exceptions.WorksheetNotFound:
