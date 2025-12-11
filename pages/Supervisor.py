@@ -41,20 +41,25 @@ if report_type == "تقرير تجميعي":
     
     for sheet_url in user_sheets:
         try:
-            user_sheet = client.open_by_url(sheet_url)
-            user_data = pd.DataFrame(user_sheet.get_all_records())
-            user_data['التاريخ'] = pd.to_datetime(user_data['التاريخ'], errors='coerce')  # تأكد من تحويل التاريخ
-            
-            # تصفية البيانات بناءً على التاريخ
-            user_data = user_data[(user_data['التاريخ'] >= pd.to_datetime(start_date)) & (user_data['التاريخ'] <= pd.to_datetime(end_date))]
-            
-            # جمع الدرجات لجميع البنود
-            user_data['المجموع'] = user_data.iloc[:, 1:].sum(axis=1)  # جمع الدرجات لجميع الأعمدة
-            aggregated_data.append({
-                'الاسم': user_sheet.title,
-                'المجموع': user_data['المجموع'].sum()  # جمع درجات جميع الأيام
-            })
-            
+            user_spreadsheet = client.open_by_url(sheet_url)  # فتح الشيت باستخدام الرابط الفعلي
+            user_worksheet = user_spreadsheet.get_worksheet(0)  # تحديد الورقة الأولى
+            user_data = user_worksheet.get_all_records()  # جلب البيانات من الورقة الأولى
+            if not user_data:
+                st.warning(f"📄 الورقة {sheet_url} فارغة.")
+            else:
+                # تحويل البيانات إلى DataFrame إذا كانت موجودة
+                user_data_df = pd.DataFrame(user_data)
+                user_data_df['التاريخ'] = pd.to_datetime(user_data_df['التاريخ'], errors='coerce')  # تأكد من تحويل التاريخ
+                # تصفية البيانات بناءً على التاريخ
+                user_data_df = user_data_df[(user_data_df['التاريخ'] >= pd.to_datetime(start_date)) & 
+                                             (user_data_df['التاريخ'] <= pd.to_datetime(end_date))]
+                # جمع الدرجات لجميع البنود
+                user_data_df['المجموع'] = user_data_df.iloc[:, 1:].sum(axis=1)  # جمع الدرجات لجميع الأعمدة
+                aggregated_data.append({
+                    'الاسم': user_spreadsheet.title,
+                    'المجموع': user_data_df['المجموع'].sum()  # جمع درجات جميع الأيام
+                })
+                
         except Exception as e:
             st.error(f"⚠️ حدث خطأ في جلب البيانات من الشيت {sheet_url}: {str(e)}")
     
@@ -69,19 +74,24 @@ elif report_type == "تقرير بند معين":
     
     for sheet_url in user_sheets:
         try:
-            user_sheet = client.open_by_url(sheet_url)
-            user_data = pd.DataFrame(user_sheet.get_all_records())
-            user_data['التاريخ'] = pd.to_datetime(user_data['التاريخ'], errors='coerce')
-            
-            # تصفية البيانات بناءً على التاريخ
-            user_data = user_data[(user_data['التاريخ'] >= pd.to_datetime(start_date)) & (user_data['التاريخ'] <= pd.to_datetime(end_date))]
-            
-            # جمع الدرجات للبند المحدد
-            aggregated_column_data.append({
-                'الاسم': user_sheet.title,
-                selected_column: user_data[selected_column].sum()  # جمع درجات البند
-            })
-            
+            user_spreadsheet = client.open_by_url(sheet_url)  # فتح الشيت باستخدام الرابط الفعلي
+            user_worksheet = user_spreadsheet.get_worksheet(0)  # تحديد الورقة الأولى
+            user_data = user_worksheet.get_all_records()  # جلب البيانات من الورقة الأولى
+            if not user_data:
+                st.warning(f"📄 الورقة {sheet_url} فارغة.")
+            else:
+                # تحويل البيانات إلى DataFrame
+                user_data_df = pd.DataFrame(user_data)
+                user_data_df['التاريخ'] = pd.to_datetime(user_data_df['التاريخ'], errors='coerce')  # تأكد من تحويل التاريخ
+                # تصفية البيانات بناءً على التاريخ
+                user_data_df = user_data_df[(user_data_df['التاريخ'] >= pd.to_datetime(start_date)) & 
+                                             (user_data_df['التاريخ'] <= pd.to_datetime(end_date))]
+                # جمع الدرجات للبند المحدد
+                aggregated_column_data.append({
+                    'الاسم': user_spreadsheet.title,
+                    selected_column: user_data_df[selected_column].sum()  # جمع درجات البند
+                })
+                
         except Exception as e:
             st.error(f"⚠️ حدث خطأ في جلب البيانات من الشيت {sheet_url}: {str(e)}")
     
@@ -95,18 +105,23 @@ elif report_type == "تقرير فردي":
     user_sheet_url = users_df[users_df["username"] == selected_user]["sheet_name"].values[0]
     
     try:
-        user_sheet = client.open_by_url(user_sheet_url)
-        user_data = pd.DataFrame(user_sheet.get_all_records())
-        user_data['التاريخ'] = pd.to_datetime(user_data['التاريخ'], errors='coerce')
-        
-        # تصفية البيانات بناءً على التاريخ
-        user_data = user_data[(user_data['التاريخ'] >= pd.to_datetime(start_date)) & (user_data['التاريخ'] <= pd.to_datetime(end_date))]
-        
-        # جمع الدرجات لجميع البنود
-        user_data['المجموع'] = user_data.iloc[:, 1:].sum(axis=1)
-        
-        st.subheader(f"تقرير فردي للمستخدم: {selected_user}")
-        st.dataframe(user_data)
+        user_spreadsheet = client.open_by_url(user_sheet_url)  # فتح الشيت باستخدام الرابط الفعلي
+        user_worksheet = user_spreadsheet.get_worksheet(0)  # تحديد الورقة الأولى
+        user_data = user_worksheet.get_all_records()  # جلب البيانات من الورقة الأولى
+        if not user_data:
+            st.warning(f"📄 الورقة {selected_user} فارغة.")
+        else:
+            # تحويل البيانات إلى DataFrame
+            user_data_df = pd.DataFrame(user_data)
+            user_data_df['التاريخ'] = pd.to_datetime(user_data_df['التاريخ'], errors='coerce')  # تأكد من تحويل التاريخ
+            # تصفية البيانات بناءً على التاريخ
+            user_data_df = user_data_df[(user_data_df['التاريخ'] >= pd.to_datetime(start_date)) & 
+                                         (user_data_df['التاريخ'] <= pd.to_datetime(end_date))]
+            # جمع الدرجات لجميع البنود
+            user_data_df['المجموع'] = user_data_df.iloc[:, 1:].sum(axis=1)
+            
+            st.subheader(f"تقرير فردي للمستخدم: {selected_user}")
+            st.dataframe(user_data_df)
         
     except Exception as e:
         st.error(f"⚠️ حدث خطأ في جلب البيانات للمستخدم {selected_user}: {str(e)}")
