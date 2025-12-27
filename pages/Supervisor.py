@@ -1,153 +1,90 @@
 import streamlit as st
-import gspread
 import pandas as pd
-import json
+import plotly.express as px
+import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
-import plotly.graph_objects as go
 
-# ===== الاتصال بـ Google Sheets =====
+# إعداد صفحة Streamlit
+st.set_page_config(layout="wide", page_title="📊 تقارير المشرف")
+
+# الاتصال بـ Google Sheets
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
+creds_dict = st.secrets["GOOGLE_SHEETS_CREDENTIALS"]
 creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
 client = gspread.authorize(creds)
 
-# ===== إعداد الصفحة =====
-st.set_page_config(page_title="التقارير", page_icon="📊")
-st.title("📊 التقارير")
+# تحميل بيانات التقارير
+def load_data():
+    sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY").worksheet("admin")
+    data = sheet.get_all_records()
+    df = pd.DataFrame(data)
+    return df
 
-# ===== تحقق من صلاحية المشرف =====
-if "permissions" not in st.session_state or st.session_state["permissions"] != "supervisor":
-    st.error("🚫 هذه الصفحة مخصصة للمشرف فقط.")
-    st.stop()
+data = load_data()
 
-# ===== التبويبات: اختيار نوع التقرير =====
-tab = st.selectbox("اختار نوع التقرير", ["تقرير تجميعي", "تقرير بند معين", "تقرير فردي", "الرسوم البيانية"])
+# التبويبات
+tab1, tab2, tab3, tab4 = st.tabs(["📋 التقرير التجميعي", "📊 تقرير بند معين", "📅 تقرير فردي", "📈 رسوم بيانية"])
 
-# جلب بيانات المستخدمين
-admin_sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY").worksheet("admin")
-users_df = pd.DataFrame(admin_sheet.get_all_records())
-user_sheets = users_df["sheet_name"].values  # هنا نتعامل مع العامود الثالث الذي يحتوي على روابط الشيتات
-
-# تاريخ بداية ونهاية الفترات
-start_date = st.date_input("تاريخ البداية", datetime(2025, 1, 1))
-end_date = st.date_input("تاريخ النهاية", datetime.today())
-
-# تقرير تجميعي - جمع الدرجات لجميع البنود لفترة معينة
-if tab == "تقرير تجميعي":
-    aggregated_data = []
+# التقرير التجميعي
+with tab1:
+    st.header("📋 التقرير التجميعي")
+    st.write("تقرير تجميعي لجميع الأشخاص بمجموع الدرجات لفترة محددة")
     
-    for sheet_url in user_sheets:
-        try:
-            user_spreadsheet = client.open_by_url(sheet_url)  # فتح الشيت باستخدام الرابط الفعلي
-            user_worksheet = user_spreadsheet.get_worksheet(0)  # تحديد الورقة الأولى
-            user_data = user_worksheet.get_all_records()  # جلب البيانات من الورقة الأولى
-            if not user_data:
-                st.warning(f"📄 الورقة {sheet_url} فارغة.")
-            else:
-                # تحويل البيانات إلى DataFrame إذا كانت موجودة
-                user_data_df = pd.DataFrame(user_data)
-                user_data_df['التاريخ'] = pd.to_datetime(user_data_df['التاريخ'], errors='coerce')  # تأكد من تحويل التاريخ
-                # تصفية البيانات بناءً على التاريخ
-                user_data_df = user_data_df[(user_data_df['التاريخ'] >= pd.to_datetime(start_date)) & 
-                                             (user_data_df['التاريخ'] <= pd.to_datetime(end_date))]
-                # جمع الدرجات لجميع البنود
-                user_data_df['المجموع'] = user_data_df.iloc[:, 1:].sum(axis=1)  # جمع الدرجات لجميع الأعمدة
-                aggregated_data.append({
-                    'الاسم': user_spreadsheet.title,
-                    'المجموع': user_data_df['المجموع'].sum()  # جمع درجات جميع الأيام
-                })
-                
-        except Exception as e:
-            st.error(f"⚠️ حدث خطأ في جلب البيانات من الشيت {sheet_url}: {str(e)}")
+    start_date = st.date_input("ابدأ من تاريخ", datetime.today())
+    end_date = st.date_input("انتهِ إلى تاريخ", datetime.today())
     
-    aggregated_df = pd.DataFrame(aggregated_data)
-    st.dataframe(aggregated_df)
+    if start_date <= end_date:
+        # استخراج البيانات في الفترة المحددة
+        filtered_data = data[(data['التاريخ'] >= start_date.strftime('%Y-%m-%d')) & (data['التاريخ'] <= end_date.strftime('%Y-%m-%d'))]
+        total_scores = filtered_data.groupby('الاسم')['الدرجات'].sum()
+        st.write(total_scores)
+    else:
+        st.warning("تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
 
-# تقرير بند معين - جمع درجات بند معين
-elif tab == "تقرير بند معين":
-    # اختيار البند
-    selected_column = st.selectbox("اختار البند", users_df.columns[1:])
-    aggregated_column_data = []
+# تقرير بند معين
+with tab2:
+    st.header("📊 تقرير بند معين")
+    st.write("تقرير لكل الأشخاص وبند معين فقط")
     
-    for sheet_url in user_sheets:
-        try:
-            user_spreadsheet = client.open_by_url(sheet_url)  # فتح الشيت باستخدام الرابط الفعلي
-            user_worksheet = user_spreadsheet.get_worksheet(0)  # تحديد الورقة الأولى
-            user_data = user_worksheet.get_all_records()  # جلب البيانات من الورقة الأولى
-            if not user_data:
-                st.warning(f"📄 الورقة {sheet_url} فارغة.")
-            else:
-                # تحويل البيانات إلى DataFrame
-                user_data_df = pd.DataFrame(user_data)
-                user_data_df['التاريخ'] = pd.to_datetime(user_data_df['التاريخ'], errors='coerce')  # تأكد من تحويل التاريخ
-                # تصفية البيانات بناءً على التاريخ
-                user_data_df = user_data_df[(user_data_df['التاريخ'] >= pd.to_datetime(start_date)) & 
-                                             (user_data_df['التاريخ'] <= pd.to_datetime(end_date))]
-                # جمع الدرجات للبند المحدد
-                aggregated_column_data.append({
-                    'الاسم': user_spreadsheet.title,
-                    selected_column: user_data_df[selected_column].sum()  # جمع درجات البند
-                })
-                
-        except Exception as e:
-            st.error(f"⚠️ حدث خطأ في جلب البيانات من الشيت {sheet_url}: {str(e)}")
+    selected_bund = st.selectbox("اختر البند", ['صلاة الفجر', 'الوضوء', 'الصلاة', 'التلاوة'])
+    start_date = st.date_input("ابدأ من تاريخ", datetime.today())
+    end_date = st.date_input("انتهِ إلى تاريخ", datetime.today())
     
-    column_data_df = pd.DataFrame(aggregated_column_data)
-    st.dataframe(column_data_df)
+    if start_date <= end_date:
+        # استخراج البيانات في الفترة المحددة للبند المختار
+        filtered_data = data[(data['التاريخ'] >= start_date.strftime('%Y-%m-%d')) & (data['التاريخ'] <= end_date.strftime('%Y-%m-%d'))]
+        selected_bund_data = filtered_data.groupby('الاسم')[selected_bund].sum()
+        st.write(selected_bund_data)
+    else:
+        st.warning("تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
 
-# تقرير فردي - جمع درجات شخص معين لفترة معينة
-elif tab == "تقرير فردي":
-    # اختيار اسم المستخدم
-    selected_user = st.selectbox("اختار الشخص", users_df["username"].values)
-    user_sheet_url = users_df[users_df["username"] == selected_user]["sheet_name"].values[0]
-    
-    try:
-        user_spreadsheet = client.open_by_url(user_sheet_url)  # فتح الشيت باستخدام الرابط الفعلي
-        user_worksheet = user_spreadsheet.get_worksheet(0)  # تحديد الورقة الأولى
-        user_data = user_worksheet.get_all_records()  # جلب البيانات من الورقة الأولى
-        if not user_data:
-            st.warning(f"📄 الورقة {selected_user} فارغة.")
-        else:
-            # تحويل البيانات إلى DataFrame
-            user_data_df = pd.DataFrame(user_data)
-            user_data_df['التاريخ'] = pd.to_datetime(user_data_df['التاريخ'], errors='coerce')  # تأكد من تحويل التاريخ
-            # تصفية البيانات بناءً على التاريخ
-            user_data_df = user_data_df[(user_data_df['التاريخ'] >= pd.to_datetime(start_date)) & 
-                                         (user_data_df['التاريخ'] <= pd.to_datetime(end_date))]
-            # جمع الدرجات لجميع البنود
-            user_data_df['المجموع'] = user_data_df.iloc[:, 1:].sum(axis=1)
-            
-            st.subheader(f"تقرير فردي للمستخدم: {selected_user}")
-            st.dataframe(user_data_df)
-        
-    except Exception as e:
-        st.error(f"⚠️ حدث خطأ في جلب البيانات للمستخدم {selected_user}: {str(e)}")
+# تقرير فردي
+with tab3:
+    st.header("📅 التقرير الفردي")
+    st.write("تقرير فردي لشخص معين مع تفصيل جميع البنود")
 
-# تبويب الرسوم البيانية (Pie charts)
-elif tab == "الرسوم البيانية":
-    st.subheader("📊 الرسوم البيانية")
+    username = st.selectbox("اختر الشخص", data['الاسم'].unique())
+    start_date = st.date_input("ابدأ من تاريخ", datetime.today())
+    end_date = st.date_input("انتهِ إلى تاريخ", datetime.today())
+
+    if start_date <= end_date:
+        # استخراج البيانات في الفترة المحددة
+        filtered_data = data[(data['الاسم'] == username) & (data['التاريخ'] >= start_date.strftime('%Y-%m-%d')) & (data['التاريخ'] <= end_date.strftime('%Y-%m-%d'))]
+        st.write(filtered_data)
+    else:
+        st.warning("تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
+
+# رسوم بيانية
+with tab4:
+    st.header("📈 الرسوم البيانية")
+    st.write("توزيع تقارير المشرف عبر الرسوم البيانية")
+
+    # رسم بياني عن تقرير تجميعي
+    fig = px.pie(data, names='الاسم', values='الدرجات', title="مجموع الدرجات لجميع الأشخاص")
+    st.plotly_chart(fig, use_container_width=True)
     
-    # تقرير تجميعي (Pie Chart)
-    aggregated_data = []
-    for sheet_url in user_sheets:
-        try:
-            user_spreadsheet = client.open_by_url(sheet_url)  # فتح الشيت باستخدام الرابط الفعلي
-            user_worksheet = user_spreadsheet.get_worksheet(0)  # تحديد الورقة الأولى
-            user_data = user_worksheet.get_all_records()
-            if not user_data:
-                st.warning(f"📄 الورقة {sheet_url} فارغة.")
-            else:
-                user_data_df = pd.DataFrame(user_data)
-                user_data_df['التاريخ'] = pd.to_datetime(user_data_df['التاريخ'], errors='coerce')
-                user_data_df = user_data_df[(user_data_df['التاريخ'] >= pd.to_datetime(start_date)) & 
-                                             (user_data_df['التاريخ'] <= pd.to_datetime(end_date))]
-                user_data_df['المجموع'] = user_data_df.iloc[:, 1:].sum(axis=1)
-                aggregated_data.append(user_data_df['المجموع'].sum())
-                
-        except Exception as e:
-            st.error(f"⚠️ حدث خطأ في جلب البيانات من الشيت {sheet_url}: {str(e)}")
-    
-    # إنشاء دائرة واحدة (Pie Chart)
-    fig = go.Figure(data=[go.Pie(labels=[f"المستخدم {i+1}" for i in range(len(aggregated_data))], values=aggregated_data)])
-    st.plotly_chart(fig)
+    # رسم بياني عن بند معين
+    selected_bund = st.selectbox("اختر البند لعرضه في الرسم البياني", ['صلاة الفجر', 'الوضوء', 'الصلاة', 'التلاوة'])
+    fig_bund = px.bar(data, x='الاسم', y=selected_bund, title=f"مجموع {selected_bund} لكل الأشخاص")
+    st.plotly_chart(fig_bund, use_container_width=True)
