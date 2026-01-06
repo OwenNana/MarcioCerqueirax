@@ -29,6 +29,9 @@ admin_sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
 users_df = pd.DataFrame(admin_sheet.get_all_records())
 user_sheets = users_df["sheet_name"].values  # هنا نتعامل مع العامود الثالث الذي يحتوي على روابط الشيتات
 
+# تحقق من الأعمدة
+st.write(users_df.columns)  # تحقق من الأعمدة الموجودة في DataFrame
+
 # تاريخ بداية ونهاية الفترات
 start_date = st.date_input("تاريخ البداية", datetime(2025, 1, 1))
 end_date = st.date_input("تاريخ النهاية", datetime.today())
@@ -42,11 +45,15 @@ with tab1:
     st.write("تقرير تجميعي لجميع الأشخاص بمجموع الدرجات لفترة محددة")
     
     if start_date <= end_date:
-        # استخراج البيانات في الفترة المحددة
-        filtered_data = users_df[(users_df['التاريخ'] >= start_date.strftime('%Y-%m-%d')) & 
-                                 (users_df['التاريخ'] <= end_date.strftime('%Y-%m-%d'))]
-        total_scores = filtered_data.groupby('الاسم')['الدرجات'].sum()
-        st.write(total_scores)
+        # تأكد من وجود العمود "التاريخ"
+        if 'التاريخ' in users_df.columns:
+            # استخراج البيانات في الفترة المحددة
+            filtered_data = users_df[(users_df['التاريخ'] >= start_date.strftime('%Y-%m-%d')) & 
+                                     (users_df['التاريخ'] <= end_date.strftime('%Y-%m-%d'))]
+            total_scores = filtered_data.groupby('الاسم')['الدرجات'].sum()
+            st.write(total_scores)
+        else:
+            st.error("⚠️ العمود 'التاريخ' غير موجود في البيانات.")
     else:
         st.warning("تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
 
@@ -60,11 +67,15 @@ with tab2:
     end_date = st.date_input("انتهِ إلى تاريخ", datetime.today())
     
     if start_date <= end_date:
-        # استخراج البيانات في الفترة المحددة للبند المختار
-        filtered_data = users_df[(users_df['التاريخ'] >= start_date.strftime('%Y-%m-%d')) & 
-                                 (users_df['التاريخ'] <= end_date.strftime('%Y-%m-%d'))]
-        selected_bund_data = filtered_data.groupby('الاسم')[selected_bund].sum()
-        st.write(selected_bund_data)
+        # تأكد من وجود العمود "التاريخ"
+        if 'التاريخ' in users_df.columns:
+            # استخراج البيانات في الفترة المحددة للبند المختار
+            filtered_data = users_df[(users_df['التاريخ'] >= start_date.strftime('%Y-%m-%d')) & 
+                                     (users_df['التاريخ'] <= end_date.strftime('%Y-%m-%d'))]
+            selected_bund_data = filtered_data.groupby('الاسم')[selected_bund].sum()
+            st.write(selected_bund_data)
+        else:
+            st.error("⚠️ العمود 'التاريخ' غير موجود في البيانات.")
     else:
         st.warning("تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
 
@@ -78,11 +89,15 @@ with tab3:
     end_date = st.date_input("انتهِ إلى تاريخ", datetime.today())
 
     if start_date <= end_date:
-        # استخراج البيانات في الفترة المحددة
-        filtered_data = users_df[(users_df['الاسم'] == username) & 
-                                 (users_df['التاريخ'] >= start_date.strftime('%Y-%m-%d')) & 
-                                 (users_df['التاريخ'] <= end_date.strftime('%Y-%m-%d'))]
-        st.write(filtered_data)
+        # تأكد من وجود العمود "التاريخ"
+        if 'التاريخ' in users_df.columns:
+            # استخراج البيانات في الفترة المحددة
+            filtered_data = users_df[(users_df['الاسم'] == username) & 
+                                     (users_df['التاريخ'] >= start_date.strftime('%Y-%m-%d')) & 
+                                     (users_df['التاريخ'] <= end_date.strftime('%Y-%m-%d'))]
+            st.write(filtered_data)
+        else:
+            st.error("⚠️ العمود 'التاريخ' غير موجود في البيانات.")
     else:
         st.warning("تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
 
