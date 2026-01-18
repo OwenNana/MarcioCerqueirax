@@ -26,7 +26,11 @@ st.subheader("📋 قائمة التقارير")
 
 # جلب بيانات المستخدمين
 admin_sheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY").worksheet("admin")
-users_df = pd.DataFrame(admin_sheet.get_all_records())
+
+# قراءة البيانات بدءاً من الصف السادس
+data = admin_sheet.get_all_records()[5:]  # نبدأ من الصف السادس
+users_df = pd.DataFrame(data)
+
 user_sheets = users_df["sheet_name"].values  # هنا نتعامل مع العامود الثالث الذي يحتوي على روابط الشيتات
 
 # تحقق من الأعمدة
