@@ -67,6 +67,11 @@ with tabs[0]:
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
+    # نقل عمود "المجموع" ليكون في البداية
+    cols = grouped.columns.tolist()
+    if "المجموع" in cols:
+        cols.insert(0, cols.pop(cols.index("المجموع")))
+        grouped = grouped[cols]
     st.dataframe(grouped)
 
 # ========== تبويب 2: تقرير بند معين ==========
