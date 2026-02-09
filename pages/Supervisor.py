@@ -99,12 +99,3 @@ with tabs[3]:
         title="مجموع الدرجات الكلية"
     ))
     st.plotly_chart(pie_fig, use_container_width=True)
-
-    bar_fig = go.Figure(go.Bar(
-        x=activity_sum.index,
-        y=activity_sum.values,
-        name=selected_activity,
-        marker_color="indianred"
-    ))
-    bar_fig.update_layout(title=f"مجموع {selected_activity} لكل المستخدمين")
-    st.plotly_chart(bar_fig, use_container_width=True)
