@@ -14,7 +14,36 @@ client = gspread.authorize(creds)
 
 # ===== إعداد الصفحة =====
 st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
-st.title("📊 تقارير المشرف")
+
+st.markdown("""
+    <style>
+    html, body, [class*="css"]  {
+        font-family: 'Arial', sans-serif;
+        background-color: white !important;
+        color: black !important;
+    }
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 18px;
+        padding: 10px;
+    }
+    .stDataFrame div[role='table'] {
+        overflow-x: auto;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+col1, col2 = st.columns([0.8, 0.2])
+with col1:
+    st.title("📊 تقارير المشرف")
+with col2:
+    if st.button("🔄 جلب المعلومات من قاعدة البيانات"):
+        st.experimental_rerun()
 
 # ===== تحقق من صلاحية الدخول =====
 if "permissions" not in st.session_state or st.session_state["permissions"] != "supervisor":
@@ -67,12 +96,12 @@ with tabs[0]:
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
-    # نقل عمود "المجموع" ليكون في البداية
     cols = grouped.columns.tolist()
     if "المجموع" in cols:
         cols.insert(0, cols.pop(cols.index("المجموع")))
         grouped = grouped[cols]
-    st.dataframe(grouped)
+    grouped = grouped.sort_values(by="المجموع", ascending=True)
+    st.dataframe(grouped, use_container_width=True)
 
 # ========== تبويب 2: تقرير بند معين ==========
 with tabs[1]:
@@ -80,14 +109,14 @@ with tabs[1]:
     all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username"]]
     selected_activity = st.selectbox("اختر البند", all_columns)
     activity_sum = merged_df.groupby("username")[selected_activity].sum()
-    st.dataframe(activity_sum)
+    st.dataframe(activity_sum, use_container_width=True)
 
 # ========== تبويب 3: تقرير فردي ==========
 with tabs[2]:
     st.subheader("👤 تقرير تفصيلي لمستخدم")
     selected_user = st.selectbox("اختر المستخدم", merged_df["username"].unique())
     user_df = merged_df[merged_df["username"] == selected_user].sort_values("التاريخ")
-    st.dataframe(user_df.reset_index(drop=True))
+    st.dataframe(user_df.reset_index(drop=True), use_container_width=True)
 
 # ========== تبويب 4: رسوم بيانية ==========
 with tabs[3]:
