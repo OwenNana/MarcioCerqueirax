@@ -38,12 +38,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-col1, col2 = st.columns([0.8, 0.2])
-with col1:
-    st.title("📊 تقارير المشرف")
-with col2:
-    if st.button("🔄 جلب المعلومات من قاعدة البيانات"):
-        st.experimental_rerun()
+st.title("📊 تقارير المشرف")
+if st.button("🔄 جلب المعلومات من قاعدة البيانات"):
+    st.experimental_rerun()
 
 # ===== تحقق من صلاحية الدخول =====
 if "permissions" not in st.session_state or st.session_state["permissions"] != "supervisor":
