@@ -40,7 +40,7 @@ st.markdown("""
 
 st.title("📊 تقارير المشرف")
 if st.button("🔄 جلب المعلومات من قاعدة البيانات"):
-    st.experimental_rerun()
+    st.rerun()
 
 # ===== تحقق من صلاحية الدخول =====
 if "permissions" not in st.session_state or st.session_state["permissions"] != "supervisor":
