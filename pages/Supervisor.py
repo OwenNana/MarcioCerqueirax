@@ -6,6 +6,20 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import plotly.graph_objects as go
 
+# ===== التحقق من تسجيل الدخول وإعادة التوجيه =====
+if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
+    st.warning("🔐 يجب تسجيل الدخول أولاً")
+    st.switch_page("home.py")
+
+if st.session_state.get("permissions") != "supervisor":
+    permission = st.session_state.get("permissions")
+    if permission == "admin":
+        st.switch_page("pages/AdminDashboard.py")
+    elif permission == "user":
+        st.switch_page("pages/UserDashboard.py")
+    else:
+        st.switch_page("home.py")
+
 # ===== إعداد الاتصال بـ Google Sheets =====
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds_dict = json.loads(st.secrets["GOOGLE_SHEETS_CREDENTIALS"])
@@ -14,6 +28,7 @@ client = gspread.authorize(creds)
 
 # ===== إعداد الصفحة =====
 st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
+
 
 st.markdown("""
     <style>
