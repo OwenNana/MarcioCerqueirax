@@ -67,7 +67,7 @@ st.subheader("➕ إنشاء حساب جديد")
 with st.form("create_user_form"):
     username = st.text_input("Username")
     password = st.text_input("Password")
-    role = st.selectbox("Role", ["user", "supervisor"])
+    role = "user"  # تم تثبيت الصلاحية على user فقط
     create = st.form_submit_button("Create")
 
     if create:
