@@ -4,6 +4,7 @@ import pandas as pd
 import json
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
+import plotly.graph_objects as go
 
 # ===== إعادة التوجيه إلى صفحة تسجيل الدخول إذا لم يتم تسجيل الدخول =====
 if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
@@ -16,30 +17,7 @@ creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
 client = gspread.authorize(creds)
 
 # ===== إعداد الصفحة =====
-st.set_page_config(page_title="تقييم اليوم", page_icon="📋")
-st.markdown("""
-    <style>
-        html, body, [data-testid="stApp"] {
-            background-color: white !important;
-            color: black !important;
-        }
-        .block-container {
-            background-color: white !important;
-        }
-        .activity-label {
-            color: #800000;
-            font-weight: bold;
-            font-size: 18px;
-            text-align: center;
-            margin-bottom: 4px;
-        }
-        .stButton {
-            font-size: 16px;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-st.title("📋 تقييم الأنشطة اليومية")
+st.set_page_config(page_title="تقييم اليوم", page_icon="📋", layout="wide")
 
 # ===== تحقق من صلاحية المستخدم =====
 if "username" not in st.session_state or "sheet_url" not in st.session_state:
@@ -61,51 +39,79 @@ username = st.session_state["username"]
 sheet_name = f"بيانات - {username}"
 spreadsheet = client.open_by_key("1gOmeFwHnRZGotaUHqVvlbMtVVt1A2L7XeIuolIyJjAY")
 worksheet = spreadsheet.worksheet(sheet_name)
-
-# ===== جلب الأعمدة من الصف الأول =====
 columns = worksheet.row_values(1)
 
-# ===== النموذج =====
-with st.form("daily_form"):
-    today = datetime.today().date()
-    allowed_dates = [today - timedelta(days=i) for i in range(3)]  # اليوم ويومان قبله
-    date = st.date_input("📅 التاريخ", today)
+# ===== تبويبات المستخدم =====
+tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع", "📌 تقرير بند"])
 
-    if date not in allowed_dates:
-        st.warning("⚠️ يمكنك إدخال البيانات لليوم الحالي أو يومين سابقين فقط.")
+# ===== التبويب الأول: إدخال البيانات =====
+with tabs[0]:
+    st.title("📝 إدخال البيانات اليومية")
+    with st.form("daily_form"):
+        today = datetime.today().date()
+        allowed_dates = [today - timedelta(days=i) for i in range(3)]
+        date = st.date_input("📅 التاريخ", today)
 
-    values = [date.strftime("%Y-%m-%d")]
-
-    for col in columns[1:]:  # تخطي "التاريخ"
-        st.markdown(f"<div class='activity-label'>{col}</div>", unsafe_allow_html=True)
-
-        # استخدام شريط الأرقام لتقييم النشاط
-        rating = st.slider(
-            "",
-            min_value=1,
-            max_value=10,
-            value=5,
-            key=col,
-            format="%d"
-        )
-        values.append(str(rating))
-
-    submit = st.form_submit_button("💾 حفظ")
-
-    if submit:
         if date not in allowed_dates:
-            st.error("❌ التاريخ غير صالح. لا يمكن حفظ البيانات لغير اليوم أو اليومين السابقين.")
-        else:
-            all_dates = worksheet.col_values(1)
-            date_str = date.strftime("%Y-%m-%d")
+            st.warning("⚠️ يمكنك إدخال البيانات لليوم الحالي أو يومين سابقين فقط.")
 
-            try:
-                row_index = all_dates.index(date_str) + 1
-            except ValueError:
-                row_index = len(all_dates) + 1
-                worksheet.update_cell(row_index, 1, date_str)
+        values = [date.strftime("%Y-%m-%d")]
+        for col in columns[1:]:
+            st.markdown(f"<div class='activity-label'>{col}</div>", unsafe_allow_html=True)
+            rating = st.slider("", min_value=1, max_value=10, value=5, key=col, format="%d")
+            values.append(str(rating))
 
-            for i, val in enumerate(values[1:], start=2):
-                worksheet.update_cell(row_index, i, val)
+        submit = st.form_submit_button("💾 حفظ")
 
-            st.success("✅ تم حفظ البيانات بنجاح")
+        if submit:
+            if date not in allowed_dates:
+                st.error("❌ التاريخ غير صالح. لا يمكن حفظ البيانات لغير اليوم أو اليومين السابقين.")
+            else:
+                all_dates = worksheet.col_values(1)
+                date_str = date.strftime("%Y-%m-%d")
+                try:
+                    row_index = all_dates.index(date_str) + 1
+                except ValueError:
+                    row_index = len(all_dates) + 1
+                    worksheet.update_cell(row_index, 1, date_str)
+                for i, val in enumerate(values[1:], start=2):
+                    worksheet.update_cell(row_index, i, val)
+                st.success("✅ تم حفظ البيانات بنجاح")
+
+# ===== التبويب الثاني: مجموع البنود للفترة =====
+with tabs[1]:
+    st.title("📊 مجموع البنود للفترة")
+    df = pd.DataFrame(worksheet.get_all_records())
+    df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input("من تاريخ", datetime.today().date() - timedelta(days=7))
+    with col2:
+        end_date = st.date_input("إلى تاريخ", datetime.today().date())
+
+    mask = (df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))
+    filtered = df[mask].drop(columns=["التاريخ"], errors="ignore")
+
+    totals = filtered.sum(numeric_only=True)
+    result_df = pd.DataFrame(totals, columns=["المجموع"])
+    result_df.index.name = "البند"
+    result_df = result_df.reset_index()
+    st.dataframe(result_df)
+
+# ===== التبويب الثالث: بند واحد فقط =====
+with tabs[2]:
+    st.title("📌 مجموع بند معين")
+    df = pd.DataFrame(worksheet.get_all_records())
+    df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input("من", datetime.today().date() - timedelta(days=7), key="start2")
+    with col2:
+        end_date = st.date_input("إلى", datetime.today().date(), key="end2")
+
+    activity = st.selectbox("اختر البند", columns[1:], key="activity")
+    mask = (df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))
+    total = df.loc[mask, activity].sum()
+    st.metric(label=f"المجموع للبند ({activity})", value=int(total))
