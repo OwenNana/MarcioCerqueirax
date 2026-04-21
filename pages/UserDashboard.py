@@ -42,7 +42,7 @@ worksheet = spreadsheet.worksheet(sheet_name)
 columns = worksheet.row_values(1)
 
 # ===== تبويبات المستخدم =====
-tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع", "📌 تقرير بند"])
+tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع", "📈 مجموع كلي"])
 
 # ===== التبويب الأول: إدخال البيانات =====
 with tabs[0]:
@@ -99,19 +99,20 @@ with tabs[1]:
     result_df = result_df.reset_index()
     st.dataframe(result_df)
 
-# ===== التبويب الثالث: بند واحد فقط =====
+# ===== التبويب الثالث: مجموع كلي لكافة البنود للفترة =====
 with tabs[2]:
-    st.title("📌 مجموع بند معين")
+    st.title("📈 مجموع كلي لكافة البنود")
     df = pd.DataFrame(worksheet.get_all_records())
     df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
 
     col1, col2 = st.columns(2)
     with col1:
-        start_date = st.date_input("من", datetime.today().date() - timedelta(days=7), key="start2")
+        start_date = st.date_input("من", datetime.today().date() - timedelta(days=7), key="start3")
     with col2:
-        end_date = st.date_input("إلى", datetime.today().date(), key="end2")
+        end_date = st.date_input("إلى", datetime.today().date(), key="end3")
 
-    activity = st.selectbox("اختر البند", columns[1:], key="activity")
     mask = (df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))
-    total = df.loc[mask, activity].sum()
-    st.metric(label=f"المجموع للبند ({activity})", value=int(total))
+    filtered = df[mask].drop(columns=["التاريخ"], errors="ignore")
+
+    total_score = filtered.sum(numeric_only=True).sum()
+    st.metric(label="📌 مجموعك الكلي لجميع البنود", value=int(total_score))
