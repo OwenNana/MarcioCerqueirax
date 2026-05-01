@@ -120,7 +120,8 @@ with tabs[1]:
     st.subheader("📌 مجموع بند معين لكل المستخدمين")
     all_columns = [col for col in merged_df.columns if col not in ["التاريخ", "username"]]
     selected_activity = st.selectbox("اختر البند", all_columns)
-    activity_sum = merged_df.groupby("username")[selected_activity].sum()
+    activity_sum = merged_df.groupby("username")[selected_activity].sum().sort_values(ascending=True)
+
     st.dataframe(activity_sum, use_container_width=True)
 
 # ========== تبويب 3: تقرير فردي ==========
