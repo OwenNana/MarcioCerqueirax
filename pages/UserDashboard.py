@@ -42,7 +42,7 @@ worksheet = spreadsheet.worksheet(sheet_name)
 columns = worksheet.row_values(1)
 
 # ===== تبويبات المستخدم =====
-tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع", "📈 مجموع كلي"])
+tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع", "📈 مجموع كلي", "📉 رسم بياني"])
 
 # ===== التبويب الأول: إدخال البيانات =====
 with tabs[0]:
@@ -97,6 +97,7 @@ with tabs[1]:
     result_df = pd.DataFrame(totals, columns=["المجموع"])
     result_df.index.name = "البند"
     result_df = result_df.reset_index()
+    result_df = result_df.sort_values(by="المجموع", ascending=True)
     st.dataframe(result_df)
 
 # ===== التبويب الثالث: مجموع كلي لكافة البنود للفترة =====
@@ -116,3 +117,23 @@ with tabs[2]:
 
     total_score = filtered.sum(numeric_only=True).sum()
     st.metric(label="📌 مجموعك الكلي لجميع البنود", value=int(total_score))
+
+# ===== التبويب الرابع: رسم بياني =====
+with tabs[3]:
+    st.title("📉 توزيع الدرجات")
+    df = pd.DataFrame(worksheet.get_all_records())
+    df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input("من", datetime.today().date() - timedelta(days=7), key="start4")
+    with col2:
+        end_date = st.date_input("إلى", datetime.today().date(), key="end4")
+
+    mask = (df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))
+    filtered = df[mask].drop(columns=["التاريخ"], errors="ignore")
+
+    totals = filtered.sum(numeric_only=True)
+    fig = go.Figure(data=[go.Pie(labels=totals.index, values=totals.values, hole=0.3)])
+    fig.update_layout(margin=dict(t=20, b=20, l=0, r=0))
+    st.plotly_chart(fig, use_container_width=True)
