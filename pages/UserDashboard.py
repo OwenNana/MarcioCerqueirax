@@ -24,7 +24,6 @@ if "username" not in st.session_state or "sheet_url" not in st.session_state:
     st.error("❌ يجب تسجيل الدخول أولاً.")
     st.stop()
 
-# ===== إعادة التوجيه بناءً على الصلاحيات =====
 if st.session_state["permissions"] != "user":
     if st.session_state["permissions"] == "admin":
         st.warning("👤 تم تسجيل الدخول كأدمن، سيتم تحويلك للوحة التحكم...")
