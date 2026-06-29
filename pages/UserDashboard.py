@@ -4,7 +4,6 @@ import pandas as pd
 import json
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
-import plotly.graph_objects as go
 
 # ===== إعادة التوجيه إلى صفحة تسجيل الدخول إذا لم يتم تسجيل الدخول =====
 if "authenticated" not in st.session_state or not st.session_state["authenticated"]:
@@ -30,7 +29,7 @@ if st.session_state["permissions"] != "user":
         st.switch_page("pages/AdminDashboard.py")
     elif st.session_state["permissions"] == "supervisor":
         st.warning("👤 تم تسجيل الدخول كمشرف، سيتم تحويلك للتقارير...")
-        st.switch_page("pages/Supervisor.py")
+        st.switch_page("pages/SupervisorDashboard.py")
     else:
         st.error("⚠️ الصلاحية غير معروفة.")
     st.stop()
@@ -56,10 +55,43 @@ with tabs[0]:
             st.warning("⚠️ يمكنك إدخال البيانات لليوم الحالي أو يومين سابقين فقط.")
 
         values = [date.strftime("%Y-%m-%d")]
-        for col in columns[1:]:
-            st.markdown(f"<div class='activity-label'>{col}</div>", unsafe_allow_html=True)
-            rating = st.slider("", min_value=1, max_value=10, value=5, key=col, format="%d")
-            values.append(str(rating))
+
+        # الأعمدة الخمسة الأولى
+        options_1 = ["في المسجد جماعة", "في المنزل جماعة", "في المسجد منفرد", "في المنزل منفرد", "خارج الوقت"]
+        ratings_1 = {
+            "في المسجد جماعة": 5,
+            "في المنزل جماعة": 4,
+            "في المسجد منفرد": 3,
+            "في المنزل منفرد": 2,
+            "خارج الوقت": 0
+        }
+
+        for i, col in enumerate(columns[1:6]):
+            rating = st.radio(col, options=options_1, index=0, key=col)
+            values.append(str(ratings_1[rating]))
+
+        # الأعمدة الخمسة التالية
+        options_2 = ["نعم", "ليس كاملاً", "لا"]
+        ratings_2 = {
+            "نعم": 5,
+            "ليس كاملاً": 3,
+            "لا": 0
+        }
+
+        for i, col in enumerate(columns[6:11]):
+            rating = st.radio(col, options=options_2, index=0, key=col)
+            values.append(str(ratings_2[rating]))
+
+        # الأعمدة المتبقية
+        options_3 = ["نعم", "لا"]
+        ratings_3 = {
+            "نعم": 3,
+            "لا": 0
+        }
+
+        for i, col in enumerate(columns[11:]):
+            rating = st.radio(col, options=options_3, index=0, key=col)
+            values.append(str(ratings_3[rating]))
 
         submit = st.form_submit_button("💾 حفظ")
 
