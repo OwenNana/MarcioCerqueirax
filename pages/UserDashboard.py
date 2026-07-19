@@ -167,8 +167,13 @@ with tabs[3]:
 
     if not filtered.empty:
         totals = filtered.sum(numeric_only=True)
-        fig = go.Figure(data=[go.Pie(labels=totals.index, values=totals.values, hole=0.3)])
-        fig.update_layout(margin=dict(t=20, b=20, l=0, r=0))
-        st.plotly_chart(fig, use_container_width=True)
+        
+        # تأكد من أن مجموع البيانات ليس فارغًا قبل محاولة رسم المخطط
+        if not totals.empty:
+            fig = go.Figure(data=[go.Pie(labels=totals.index, values=totals.values, hole=0.3)])
+            fig.update_layout(margin=dict(t=20, b=20, l=0, r=0))
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("⚠️ لا توجد قيم صالحة لعرض الرسم البياني.")
     else:
         st.warning("⚠️ لا توجد بيانات في الفترة المحددة.")
