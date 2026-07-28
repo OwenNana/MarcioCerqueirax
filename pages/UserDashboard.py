@@ -167,8 +167,11 @@ with tabs[3]:
 
     if not filtered.empty:
         totals = filtered.sum(numeric_only=True)
-        
-        # تأكد من أن مجموع البيانات ليس فارغًا قبل محاولة رسم المخطط
+
+        # إزالة القيم الفارغة من totals
+        totals = totals[totals != 0]
+
+        # تأكد من أن totals تحتوي على بيانات صالحة
         if not totals.empty:
             fig = go.Figure(data=[go.Pie(labels=totals.index, values=totals.values, hole=0.3)])
             fig.update_layout(margin=dict(t=20, b=20, l=0, r=0))
