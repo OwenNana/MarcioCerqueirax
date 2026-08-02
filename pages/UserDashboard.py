@@ -168,12 +168,17 @@ with tabs[3]:
     if not filtered.empty:
         totals = filtered.sum(numeric_only=True)
 
-        # إزالة القيم الفارغة من totals
-        totals = totals[totals != 0]
+        # إزالة القيم الفارغة أو الصفرية من totals
+        totals = totals[totals > 0]
 
-        # تأكد من أن totals تحتوي على بيانات صالحة
+        # التأكد من أن totals يحتوي على بيانات صالحة
         if not totals.empty:
-            fig = go.Figure(data=[go.Pie(labels=totals.index, values=totals.values, hole=0.3)])
+            # تحويل totals إلى قائمة يمكن استخدامها مع Plotly
+            labels = totals.index.tolist()  # استخراج أسماء الأعمدة
+            values = totals.values.tolist()  # استخراج القيم
+
+            # إنشاء الرسم البياني الدائري باستخدام Plotly
+            fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.3)])
             fig.update_layout(margin=dict(t=20, b=20, l=0, r=0))
             st.plotly_chart(fig, use_container_width=True)
         else:
