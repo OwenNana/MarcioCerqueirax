@@ -41,7 +41,7 @@ worksheet = spreadsheet.worksheet(sheet_name)
 columns = worksheet.row_values(1)
 
 # ===== تبويبات المستخدم =====
-tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع", "📈 مجموع كلي", "📉 رسم بياني"])
+tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع", "📈 مجموع كلي"])
 
 # ===== التبويب الأول: إدخال البيانات =====
 with tabs[0]:
@@ -149,39 +149,3 @@ with tabs[2]:
 
     total_score = filtered.sum(numeric_only=True).sum()
     st.metric(label="📌 مجموعك الكلي لجميع البنود", value=int(total_score))
-
-# ===== التبويب الرابع: رسم بياني =====
-with tabs[3]:
-    st.title("📉 توزيع الدرجات")
-    df = pd.DataFrame(worksheet.get_all_records())
-    df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input("من", datetime.today().date() - timedelta(days=7), key="start4")
-    with col2:
-        end_date = st.date_input("إلى", datetime.today().date(), key="end4")
-
-    mask = (df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))
-    filtered = df[mask].drop(columns=["التاريخ"], errors="ignore")
-
-    if not filtered.empty:
-        totals = filtered.sum(numeric_only=True)
-
-        # إزالة القيم الفارغة أو الصفرية من totals
-        totals = totals[totals > 0]
-
-        # التأكد من أن totals يحتوي على بيانات صالحة
-        if not totals.empty:
-            # تحويل totals إلى قائمة يمكن استخدامها مع Plotly
-            labels = totals.index.tolist()  # استخراج أسماء الأعمدة
-            values = totals.values.tolist()  # استخراج القيم
-
-            # إنشاء الرسم البياني الدائري باستخدام Plotly
-            fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.3)])
-            fig.update_layout(margin=dict(t=20, b=20, l=0, r=0))
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("⚠️ لا توجد قيم صالحة لعرض الرسم البياني.")
-    else:
-        st.warning("⚠️ لا توجد بيانات في الفترة المحددة.")
