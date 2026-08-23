@@ -111,13 +111,14 @@ with tabs[0]:
                 st.success("✅ تم حفظ البيانات بنجاح")
 
 
+
 # ===== التبويب الثاني: مجموع البنود للفترة =====
 with tabs[1]:
     st.title("📊 مجموع البنود للفترة")
     df = pd.DataFrame(worksheet.get_all_records())
     df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
 
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1, 1])  # تحديد عرض الأعمدة بشكل مرن
     with col1:
         start_date = st.date_input("من تاريخ", datetime.today().date() - timedelta(days=7))
     with col2:
