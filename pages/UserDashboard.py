@@ -118,7 +118,14 @@ with tabs[1]:
     df = pd.DataFrame(worksheet.get_all_records())
     df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
 
-    col1, col2 = st.columns([1, 1])  # تحديد عرض الأعمدة بشكل مرن
+    # إزالة الصفوف التي تحتوي على بيانات فارغة في "البند" أو "المجموع"
+    df = df.dropna(subset=["البند", "المجموع"])
+
+    # إزالة عمود الأرقام التسلسلية إذا كان موجودًا
+    if "رقم التسلسل" in df.columns:
+        df = df.drop(columns=["رقم التسلسل"])
+
+    col1, col2 = st.columns(2)
     with col1:
         start_date = st.date_input("من تاريخ", datetime.today().date() - timedelta(days=7))
     with col2:
@@ -133,13 +140,16 @@ with tabs[1]:
     result_df = result_df.reset_index()
     result_df = result_df.sort_values(by="المجموع", ascending=True)
 
+    # عكس ترتيب الأعمدة: نعرض المجموع أولًا ثم اسم البند
+    result_df = result_df[["المجموع", "البند"]]  # ترتيب الأعمدة بحيث يظهر المجموع أولًا
+
     # تغيير ترتيب الأعمدة وعكسهم مع الألوان والتوسيط
-    # تعديل الأعمدة بحيث يتم عرض اسم البند أولاً ثم الدرجة المكتسبة
     result_df["البند"] = result_df["البند"].apply(lambda x: f"<p style='color:#8B0000; text-align:center'>{x}</p>")  # اسم البند باللون الأحمر العنابي
     result_df["المجموع"] = result_df["المجموع"].apply(lambda x: f"<p style='color:#000080; text-align:center'>{x}</p>")  # الدرجة المكتسبة باللون الأزرق الكحلي
 
     # عرض الجدول مع التنسيق
     st.markdown(result_df.to_html(escape=False), unsafe_allow_html=True)
+
 
 
 
