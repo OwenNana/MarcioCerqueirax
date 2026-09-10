@@ -118,8 +118,10 @@ with tabs[1]:
     df = pd.DataFrame(worksheet.get_all_records())
     df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
 
-    # إزالة الصفوف التي تحتوي على بيانات فارغة في "البند" أو "المجموع"
-    df = df.dropna(subset=["البند", "المجموع"])
+    # تحقق من وجود الأعمدة قبل محاولة إزالة الصفوف الفارغة
+    if "البند" in df.columns and "المجموع" in df.columns:
+        # إزالة الصفوف التي تحتوي على بيانات فارغة في "البند" أو "المجموع"
+        df = df.dropna(subset=["البند", "المجموع"])
 
     # إزالة عمود الأرقام التسلسلية إذا كان موجودًا
     if "رقم التسلسل" in df.columns:
@@ -149,9 +151,6 @@ with tabs[1]:
 
     # عرض الجدول مع التنسيق
     st.markdown(result_df.to_html(escape=False), unsafe_allow_html=True)
-
-
-
 
 # ===== التبويب الثالث: مجموع كلي لكافة البنود للفترة =====
 with tabs[2]:
