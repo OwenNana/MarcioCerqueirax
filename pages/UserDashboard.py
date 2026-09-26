@@ -119,14 +119,10 @@ with tabs[1]:
     df = pd.DataFrame(worksheet.get_all_records())
     df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
 
-    # طباعة أسماء الأعمدة للتحقق من الأعمدة الفعلية في الـ DataFrame
-    st.write("أسماء الأعمدة في البيانات:", df.columns)
+    # إزالة الأعمدة غير المسماة التي تحتوي على أرقام تسلسلية (أو أي عمود غير ضروري)
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]  # إزالة الأعمدة التي تبدأ بـ 'Unnamed' (غالبًا تحتوي على أرقام تسلسلية)
 
-    # إزالة الأعمدة التي تحتوي على أرقام تسلسلية أو أي عمود غير مرغوب فيه
-    # إزالة الأعمدة غير المسماة (التي تبدأ بـ 'Unnamed') والتي قد تحتوي على أرقام تسلسلية
-    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-
-    # التحقق من أن الأعمدة "البند" و "المجموع" موجودة، ثم تصفية البيانات
+    # إزالة الصفوف التي تحتوي على بيانات فارغة في "البند" أو "المجموع"
     if "البند" in df.columns and "المجموع" in df.columns:
         df = df.dropna(subset=["البند", "المجموع"])
 
@@ -180,3 +176,28 @@ with tabs[2]:
 
     total_score = filtered.sum(numeric_only=True).sum()
     st.metric(label="📌 مجموعك الكلي لجميع البنود", value=int(total_score))
+
+
+
+
+
+
+# ===== التبويب الرابع: رسم بياني =====
+with tabs[3]:
+    st.title("📉 توزيع الدرجات")
+    df = pd.DataFrame(worksheet.get_all_records())
+    df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input("من", datetime.today().date() - timedelta(days=7), key="start4")
+    with col2:
+        end_date = st.date_input("إلى", datetime.today().date(), key="end4")
+
+    mask = (df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))
+    filtered = df[mask].drop(columns=["التاريخ"], errors="ignore")
+
+    totals = filtered.sum(numeric_only=True)
+    fig = go.Figure(data=[go.Pie(labels=totals.index, values=totals.values, hole=0.3)])
+    fig.update_layout(margin=dict(t=20, b=20, l=0, r=0))
+    st.plotly_chart(fig, use_container_width=True)
