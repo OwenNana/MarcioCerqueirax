@@ -41,7 +41,7 @@ worksheet = spreadsheet.worksheet(sheet_name)
 columns = worksheet.row_values(1)
 
 # ===== تبويبات المستخدم =====
-tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع", "📈 مجموع كلي"])
+tabs = st.tabs(["📝 إدخال البيانات", "📊 تقارير المجموع"])
 
 # ===== التبويب الأول: إدخال البيانات =====
 with tabs[0]:
@@ -111,9 +111,7 @@ with tabs[0]:
                 st.success("✅ تم حفظ البيانات بنجاح")
 
 
-
-
-# ===== التبويب الثاني: مجموع البنود للفترة =====
+# ===== التبويب الثاني: مجموع البنود للفترة و المجموع الكلي =====
 with tabs[1]:
     st.title("📊 مجموع البنود للفترة")
     df = pd.DataFrame(worksheet.get_all_records())
@@ -140,6 +138,12 @@ with tabs[1]:
     filtered = df[mask].drop(columns=["التاريخ"], errors="ignore")
 
     totals = filtered.sum(numeric_only=True)
+    total_score = totals.sum()  # حساب مجموع جميع الدرجات
+
+    # عرض مجموع الدرجات الكلي
+    st.metric(label="📌 مجموعك الكلي لجميع البنود", value=int(total_score))
+
+    # الآن عرض مجموع البنود للفترة
     result_df = pd.DataFrame(totals, columns=["المجموع"])
     result_df.index.name = "البند"
     result_df = result_df.reset_index()
@@ -154,31 +158,3 @@ with tabs[1]:
 
     # عرض الجدول مع التنسيق
     st.markdown(result_df.to_html(escape=False), unsafe_allow_html=True)
-
-
-
-
-
-# ===== التبويب الثالث: مجموع كلي لكافة البنود للفترة =====
-with tabs[2]:
-    st.title("📈 مجموع كلي لكافة البنود")
-    df = pd.DataFrame(worksheet.get_all_records())
-    df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input("من", datetime.today().date() - timedelta(days=7), key="start3")
-    with col2:
-        end_date = st.date_input("إلى", datetime.today().date(), key="end3")
-
-    mask = (df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))
-    filtered = df[mask].drop(columns=["التاريخ"], errors="ignore")
-
-    total_score = filtered.sum(numeric_only=True).sum()
-    st.metric(label="📌 مجموعك الكلي لجميع البنود", value=int(total_score))
-
-
-
-
-
-
