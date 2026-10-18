@@ -109,9 +109,7 @@ with tabs[0]:
                 for i, val in enumerate(values[1:], start=2):
                     worksheet.update_cell(row_index, i, val)
                 st.success("✅ تم حفظ البيانات بنجاح")
-
-
-# ===== التبويب الثاني: مجموع البنود للفترة و المجموع الكلي =====
+# ===== التبويب الثاني: مجموع البنود للفترة =====
 with tabs[1]:
     st.title("📊 مجموع البنود للفترة")
     df = pd.DataFrame(worksheet.get_all_records())
@@ -146,7 +144,7 @@ with tabs[1]:
     # الآن عرض مجموع البنود للفترة
     result_df = pd.DataFrame(totals, columns=["المجموع"])
     result_df.index.name = "البند"
-    result_df = result_df.reset_index()
+    result_df = result_df.reset_index(drop=True)  # إزالة الفهرس دون إضافته كعمود جديد
     result_df = result_df.sort_values(by="المجموع", ascending=True)
 
     # عكس ترتيب الأعمدة: نعرض المجموع أولًا ثم اسم البند
