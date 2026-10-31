@@ -145,12 +145,11 @@ with tabs[1]:
 
     # الآن عرض مجموع البنود للفترة
     result_df = pd.DataFrame(totals, columns=["المجموع"])
-
-    # إلغاء الفهرس تمامًا
-    result_df = result_df.reset_index(drop=True)
+    result_df.index.name = "البند"
+    result_df = result_df.reset_index()
+    result_df = result_df.sort_values(by="المجموع", ascending=True)
 
     # عكس ترتيب الأعمدة: نعرض المجموع أولًا ثم اسم البند
-    result_df["البند"] = result_df.index
     result_df = result_df[["المجموع", "البند"]]  # ترتيب الأعمدة بحيث يظهر المجموع أولًا
 
     # تغيير ترتيب الأعمدة وعكسهم مع الألوان والتوسيط
