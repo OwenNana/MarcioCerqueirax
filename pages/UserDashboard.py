@@ -29,7 +29,7 @@ if st.session_state["permissions"] != "user":
         st.switch_page("pages/AdminDashboard.py")
     elif st.session_state["permissions"] == "supervisor":
         st.warning("👤 تم تسجيل الدخول كمشرف، سيتم تحويلك للتقارير...")
-        st.switch_page("pages/SupervisorDashboard.py")
+        st.switch_page("pages/Supervisor.py")
     else:
         st.error("⚠️ الصلاحية غير معروفة.")
     st.stop()
