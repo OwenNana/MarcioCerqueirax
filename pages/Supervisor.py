@@ -102,9 +102,29 @@ if not all_data:
 
 merged_df = pd.concat(all_data, ignore_index=True)
 
+
+
+
 # ========== تبويب 1: التقرير التجميعي ==========
 with tabs[0]:
     st.subheader("📋 مجموع الدرجات لكل مستخدم")
+
+    # إيجاد الأشخاص الذين لديهم حقول فارغة
+    missing_data = []
+    for user in merged_df['username'].unique():
+        user_data = merged_df[merged_df['username'] == user]
+        empty_fields = user_data.isnull().sum(axis=1)
+        if empty_fields.any():
+            missing_fields = user_data.columns[empty_fields > 0]
+            missing_data.append((user, missing_fields.tolist()))
+
+    # عرض الأشخاص الذين لم يعبئوا البيانات باللون الأحمر
+    if missing_data:
+        st.markdown("### الأشخاص الذين لم يعبئوا البيانات:")
+        for user, fields in missing_data:
+            st.markdown(f"**{user}** (الحقول الفارغة: {', '.join(fields)})", unsafe_allow_html=True)
+
+    # عرض البيانات الأخرى
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
     grouped = merged_df.groupby("username")[scores.columns].sum()
     grouped["المجموع"] = grouped.sum(axis=1)
@@ -114,6 +134,8 @@ with tabs[0]:
         grouped = grouped[cols]
     grouped = grouped.sort_values(by="المجموع", ascending=True)
     st.dataframe(grouped, use_container_width=True)
+
+
 
 # ========== تبويب 2: تقرير بند معين ==========
 with tabs[1]:
