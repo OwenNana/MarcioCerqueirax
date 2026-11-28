@@ -29,7 +29,6 @@ client = gspread.authorize(creds)
 # ===== إعداد الصفحة =====
 st.set_page_config(page_title="📊 تقارير المشرف", page_icon="📊", layout="wide")
 
-
 st.markdown("""
     <style>
     html, body, [class*="css"]  {
@@ -102,9 +101,6 @@ if not all_data:
 
 merged_df = pd.concat(all_data, ignore_index=True)
 
-
-
-
 # ========== تبويب 1: التقرير التجميعي ==========
 with tabs[0]:
     st.subheader("📋 مجموع الدرجات لكل مستخدم")
@@ -122,7 +118,7 @@ with tabs[0]:
     if missing_data:
         st.markdown("### الأشخاص الذين لم يعبئوا البيانات:")
         for user, fields in missing_data:
-            st.markdown(f"**{user}** (الحقول الفارغة: {', '.join(fields)})", unsafe_allow_html=True)
+            st.markdown(f"<span style='color:red;'><strong>{user}</strong></span> (الحقول الفارغة: {', '.join(fields)})", unsafe_allow_html=True)
 
     # عرض البيانات الأخرى
     scores = merged_df.drop(columns=["التاريخ", "username"], errors="ignore")
@@ -134,8 +130,6 @@ with tabs[0]:
         grouped = grouped[cols]
     grouped = grouped.sort_values(by="المجموع", ascending=True)
     st.dataframe(grouped, use_container_width=True)
-
-
 
 # ========== تبويب 2: تقرير بند معين ==========
 with tabs[1]:
