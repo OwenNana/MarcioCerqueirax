@@ -87,6 +87,8 @@ for user in users:
         user_ws = admin_sheet.spreadsheet.worksheet(sheet_name)
         user_records = user_ws.get_all_records()
         df = pd.DataFrame(user_records)
+        
+        # تحقق من تواريخ البيانات
         if "التاريخ" in df.columns:
             df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")
             df = df[(df["التاريخ"] >= pd.to_datetime(start_date)) & (df["التاريخ"] <= pd.to_datetime(end_date))]
@@ -105,7 +107,7 @@ merged_df = pd.concat(all_data, ignore_index=True)
 with tabs[0]:
     st.subheader("📋 مجموع الدرجات لكل مستخدم")
 
-    # إيجاد الأشخاص الذين لديهم حقول فارغة
+    # إيجاد الأشخاص الذين لديهم حقول فارغة ضمن الفترة الزمنية
     missing_data = []
     for user in merged_df['username'].unique():
         user_data = merged_df[merged_df['username'] == user]
